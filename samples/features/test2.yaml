@@ -4,18 +4,18 @@ scenarios:
   - name: Test scenario 1
     steps:
       - name: my sample step definition3
-        test_data:
+        data:
           a: 10
           b: String object
           c:
-            objf1: objf1value
-            objf2: 2
+            objF1: object F1 value
+            objF2: 2
           d:
-            - arrval1
-            - arrval2
-            - arrval3: [ 'This', 'is', 'an', 'array', 'inside an array' ]
-            - arrval4:
-                - objinarray: This is an object inside an array
+            - arrVal1
+            - arrVal2
+            - arrVal3: [ 'This', 'is', 'an', 'array', 'inside an array' ]
+            - arrVal4:
+                objectInArray: This is an object inside an array
       - name: my sample step definition2
       - name: my sample step definition4
       - name: my sample step definition1

@@ -6,6 +6,7 @@ from copy import deepcopy
 
 import yaml
 
+from framework.core.models.Context import Context
 from framework.core.models.TestFeature import TestFeature
 from framework.core.runner import step_definition_mapping
 
@@ -73,7 +74,7 @@ def run_feature_file(feature_file):
     # Load the feature file to run
     feature = load_feature_file(feature_file)
 
-    context = {}
+    context = Context()
     print('Running feature ', str(feature.name))
     for scenario in feature.scenarios:
         print('Running scenario ', str(scenario.name))
@@ -81,9 +82,10 @@ def run_feature_file(feature_file):
             print('Running step ', str(step.name))
             step_to_call = step.name.strip()
             if step_to_call in step_definition_mapping.keys():
-                context['__feature__'] = feature.name
-                context['__scenario__'] = scenario.name
-                # TODO: Check if better way. Doing deep copy to avoid step definition editing step object.
-                step_definition_mapping[step_to_call](step=deepcopy(step), context=context)
+                context.feature_name = feature.name
+                context.scenario_name = scenario.name
+                context.step_name = step.name
+                context.step_data = deepcopy(step.data)
+                step_definition_mapping[step_to_call](context=context)
             else:
                 print("Step definition mapping for %s could not be found", step_to_call)
