@@ -71,12 +71,5 @@ def increment_alphanumerical_string(current_string):
                     char_array[j] = '0'
                     carry = 1
 
-    # return_string = str(char_array)
-    # for i in range(carry):
-    #     return_string = increment_alphanumerical_string(return_string)
-
     return str(char_array)
 
-
-if __name__ == '__main__':
-    print(increment_alphanumerical_string('zzz999z'))

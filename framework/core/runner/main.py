@@ -73,10 +73,14 @@ def init_framework(step_def_package='step_definitions'):
 def run_feature_file(feature_file):
     # Load the feature file to run
     feature = load_feature_file(feature_file)
+    return run_feature(feature)
 
-    context = Context()
+
+def run_feature(feature: TestFeature):
+    result = {}
     print('Running feature ', str(feature.name))
     for scenario in feature.scenarios:
+        context = Context()
         print('Running scenario ', str(scenario.name))
         for step in scenario.steps:
             print('Running step ', str(step.name))
@@ -89,3 +93,5 @@ def run_feature_file(feature_file):
                 step_definition_mapping[step_to_call](context=context)
             else:
                 print("Step definition mapping for %s could not be found", step_to_call)
+        result[scenario.name] = context
+    return result
