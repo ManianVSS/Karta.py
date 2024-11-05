@@ -1,13 +1,10 @@
-import json
-
 from fastapi import FastAPI
 from starlette.responses import FileResponse
-import uvicorn
 
 from framework.core.models.Context import Context
 from framework.core.models.TestFeature import TestFeature
 from framework.core.runner import step_definition_mapping
-from framework.core.runner.main import init_framework, run_feature
+from framework.core.runner.main import run_feature
 
 app = FastAPI(
     title="Karta.py",
@@ -50,7 +47,3 @@ async def root(feature_name: str, scenario_name: str, step_identifier: str, data
     step_definition_mapping[step_identifier](context=context)
     return context
 
-
-if __name__ == "__main__":
-    init_framework('step_definitions')
-    uvicorn.run(app, host="0.0.0.0", port=8000)
