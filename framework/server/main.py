@@ -4,7 +4,9 @@ from starlette.responses import FileResponse
 from framework.core.models.Context import Context
 from framework.core.models.TestFeature import TestFeature
 from framework.core.runner import step_definition_mapping
-from framework.core.runner.main import run_feature
+from framework.core.runner.main import run_feature, init_framework
+
+init_framework('step_definitions')
 
 app = FastAPI(
     title="Karta.py",
