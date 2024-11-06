@@ -7,4 +7,7 @@ from framework.core.models.TestScenario import TestScenario
 
 class TestFeature(BaseModel):
     name: Optional[str]
-    scenarios: Optional[list[TestScenario]]
+    description: Optional[str]
+    tags: Optional[list[str]] = []
+    background_steps: Optional[list[TestScenario]] = []
+    scenarios: list[TestScenario]
