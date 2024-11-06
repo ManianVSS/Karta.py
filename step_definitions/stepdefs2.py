@@ -1,17 +1,15 @@
-from framework.core.runner.GWTDecorator import step_def
+import random
+
+from framework.core.plugins.KriyaPlugin import step_def
 
 
 @step_def("my sample step definition3")
 def my_sample_step_definition3(context=None):
-    print('Step is:', str(context.step_name))
-    print('Context is:', str(context))
-    print('Test data passed is ', str(context.step_data))
-    context['var3'] = 3
+    print("context is ", str(context))
+    return {'var3': random.randint(0, 10)}, True
 
 
 @step_def("my sample step definition4")
 def my_sample_step_definition4(context=None):
-    print('Step is:', str(context.step_name))
-    print('Context is:', str(context))
-    print('Test data passed is ', str(context.step_data))
-    context['var4'] = 4
+    print("context is ", str(context))
+    return {'var4': random.randint(0, 10)}, True, None
