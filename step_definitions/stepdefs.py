@@ -1,7 +1,7 @@
-from framework.core.runner.GWTDecorator import step_def
+from framework.core.runner.GWTDecorator import step_def, Given, step
 
 
-@step_def("my sample step definition1")
+@Given("my sample step definition1")
 def my_sample_step_definition1(context=None):
     print('Step is:', str(context.step_name))
     print('Context is:', str(context))
@@ -9,7 +9,7 @@ def my_sample_step_definition1(context=None):
     context['var1'] = 1
 
 
-@step_def("my sample step definition2")
+@step("my sample step definition2")
 def my_sample_step_definition2(context=None):
     print('Step is:', str(context.step_name))
     print('Context is:', str(context))

@@ -11,3 +11,14 @@ def step_def(step_identifier):
         return func
 
     return register_step_definition
+
+
+step_definition = step_def
+step = step_def
+given = step_def
+when = step_def
+then = step_def
+
+Given = step_def
+When = step_def
+Then = step_def
