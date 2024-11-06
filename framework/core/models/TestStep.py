@@ -1,4 +1,8 @@
-class TestStep:
-    def __init__(self, name=None, data=None):
-        self.name = name
-        self.data = data if data else {}
+from typing import Optional, Dict
+
+from pydantic import BaseModel
+
+
+class TestStep(BaseModel):
+    name: Optional[str]
+    data: Optional[Dict] = None

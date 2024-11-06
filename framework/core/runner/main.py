@@ -15,7 +15,8 @@ def load_feature_file(feature_file):
     with open(feature_file, "r") as stream:
         try:
             feature_raw_object = yaml.safe_load(stream)
-            feature_object = TestFeature(**feature_raw_object)
+            feature_object = TestFeature.model_validate(feature_raw_object)
+            # feature_object = yaml.load(stream, TestFeature)
             return feature_object
         except yaml.YAMLError as exc:
             print(exc)

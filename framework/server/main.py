@@ -35,8 +35,8 @@ async def root():
 
 
 @app.post("/run_feature")
-async def root(feature: dict):
-    return run_feature(TestFeature(**feature))
+async def root(feature: TestFeature):
+    return run_feature(feature)
 
 
 @app.post("/run_step")
