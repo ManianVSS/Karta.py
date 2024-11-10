@@ -1,5 +1,5 @@
 from framework.core.models.VarClass import VarClass
 
 
-class Context(VarClass):
+class TestProperties(VarClass):
     pass

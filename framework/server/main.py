@@ -4,9 +4,10 @@ from starlette.responses import FileResponse
 from framework.core.models.Context import Context
 from framework.core.models.TestFeature import TestFeature
 from framework.core.models.TestStep import TestStep
-from framework.core.runner.main import run_feature, init_framework, default_step_runner, run_step
+from framework.core.runner.KartaRuntime import KartaRuntime
 
-init_framework('step_definitions')
+karta_runtime = KartaRuntime(step_def_package='step_definitions')
+karta_runtime.init_framework()
 
 app = FastAPI(
     title="Karta.py",
@@ -31,15 +32,15 @@ async def get_index_html():
 
 @app.get("/steps")
 async def get_steps():
-    return [key for key in default_step_runner.get_steps().keys()]
+    return [key for key in karta_runtime.default_step_runner.get_steps().keys()]
 
 
 @app.post("/run_feature")
 async def run_feature_api(feature: TestFeature):
-    return run_feature(feature)
+    return karta_runtime.run_feature(feature)
 
 
 @app.post("/run_step")
 async def run_step_api(step: TestStep):
     context = Context()
-    return run_step(step, context)
+    return karta_runtime.run_step(step, context)
