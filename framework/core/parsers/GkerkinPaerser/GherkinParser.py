@@ -11,29 +11,16 @@ from framework.core.models.TestStep import TestStep
 # noinspection PyPep8Naming
 class GherkinLexer(object):
     # All tokens must be named in advance.
-    tokens = ('FEATURE', 'SCENARIO', 'NAME', 'CONJUNCTION',)  # 'NEWLINE', 'COMMENT')
-
-    # Ignored characters
-    # t_ignore_NEWLINE = r'([\s\n\r]+) |((\s+)?\#[^\n]*)'
-    t_ignore_COMMENT = r'(\s+)?\#[^\n]*'
-
-    # A function can be used if there is an associated action.
-    # Write the matching regex in the docstring.
+    tokens = ('FEATURE', 'SCENARIO', 'NAME', 'CONJUNCTION',)
 
     # Ignored token with an action associated with it
-    @TOKEN(r'[\s\n]+')
+    @TOKEN(r'[\s]+')
     def t_ignore_newline(self, t):
         t.lexer.lineno += t.value.count('\n')
 
-    # @TOKEN(r'[\s\n]+')
-    # def t_ignore_NEWLINE(self, t):
-    #     t.value = t.value
-    #     return t
-    #
-    # @TOKEN(r'([ \t]+)?\#[^\n]*')
-    # def t_ignore_COMMENT(self, t):
-    #     t.value = t.value
-    #     return t
+    @TOKEN(r'(\s+)?\#[^\n]*')
+    def t_ignore_COMMENT(self, t):
+        t.value = t.value
 
     @TOKEN(r'(\s+)?Feature:')
     def t_FEATURE(self, t):
@@ -95,6 +82,8 @@ class GherkinParser(object):
         # expression : term PLUS term
         #   p[0]     : p[1] p[2] p[3]
         #
+        if p.slice[1].type == 'COMMENT':
+            del p.slice[1]
         p[0] = TestFeature(name=p[2].strip(), scenarios=p[3])  # ('feature', *p[1:],)
 
     def p_scenarios(self, p):
@@ -112,6 +101,8 @@ class GherkinParser(object):
         """
         scenario : SCENARIO NAME steps
         """
+        if p.slice[1].type == 'COMMENT':
+            del p.slice[1]
         p[0] = TestScenario(name=p[2].strip(), steps=p[3])  # ('scenario', *p[1:])
 
     def p_steps(self, p):
@@ -129,6 +120,8 @@ class GherkinParser(object):
         """
         step : CONJUNCTION NAME
         """
+        if p.slice[1].type == 'COMMENT':
+            del p.slice[1]
         step = TestStep(conjunction=p[1].strip(), name=p[2].strip())
         # step.conjunction = p[1].strip()
         # step.name = p[2].strip()
@@ -147,13 +140,19 @@ class GherkinParser(object):
 
 
 data = '''
+ # fComment 2
 Feature: Guess the word
 
+    # Comment 1
   Scenario: Maker starts a game
+    
     When the Maker starts a game
+      # sComment 1
     Then the Maker waits for a Breaker to join
-
+    
+# Comment 2
   Scenario: Breaker joins a game
+      # sComment 1
     Given the Maker has started a game with the word "silky"
     When the Breaker joins the Maker's game
     Then the Breaker must guess a word with 5 characters
