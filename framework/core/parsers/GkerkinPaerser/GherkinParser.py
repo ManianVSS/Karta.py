@@ -11,7 +11,7 @@ from framework.core.models.TestStep import TestStep
 # noinspection PyPep8Naming,PyMethodMayBeStatic
 class GherkinLexer(object):
     # All tokens must be named in advance.
-    tokens = ('FEATURE', 'DESCRIPTION', 'BACKGROUND', 'SCENARIO', 'STEP',)
+    tokens = ('FEATURE', 'DESCRIPTION_LINE', 'BACKGROUND', 'SCENARIO', 'STEP', 'DOC_STRING')
 
     # Ignored token with an action associated with it
     @TOKEN(r'[\s]+')
@@ -35,10 +35,14 @@ class GherkinLexer(object):
         t.value = t.value.strip()
         return t
 
-    @TOKEN(r'(\s+)?Scenario:([ \t]+)?[^\n]+')
+    @TOKEN(r'(\s+)?(Scenario|Example):([ \t]+)?[^\n]+')
     def t_SCENARIO(self, t):
         t.lexer.lineno += t.value.count('\n')
-        t.value = t.value.strip().removeprefix('Scenario:')
+        t.value = t.value.strip()
+        if t.value.startswith('Scenario:'):
+            t.value = t.value.removeprefix('Scenario:')
+        if t.value.startswith('Example:'):
+            t.value = t.value.removeprefix('Example:')
         return t
 
     @TOKEN(r'(\s+)?(Given | When | Then | And | But)([ \t]+)?[^\n]+')
@@ -47,8 +51,24 @@ class GherkinLexer(object):
         t.value = t.value.strip()
         return t
 
+    @TOKEN(r'(\s+)? ("""(.|\n)*""")|(```(.|\n)*```)')
+    def t_DOC_STRING(self, t):
+        t.lexer.lineno += t.value.count('\n')
+        doc_string = t.value.strip()
+        if doc_string.startswith(r'"""'):
+            doc_string = doc_string.removeprefix(r'"""').removesuffix(r'"""').strip()
+        if doc_string.startswith(r'```'):
+            doc_string = doc_string.removeprefix(r'```').removesuffix(r'```').strip()
+
+        doc_string_lines = doc_string.splitlines()
+        t.value = ""
+        for i in range(len(doc_string_lines)):
+            doc_string_lines[i] = doc_string_lines[i].lstrip()
+        t.value = '\n'.join(doc_string_lines)
+        return t
+
     @TOKEN(r'(\s+)?[^\n]+')
-    def t_DESCRIPTION(self, t):
+    def t_DESCRIPTION_LINE(self, t):
         t.lexer.lineno += t.value.count('\n')
         t.value = t.value.strip()
         return t
@@ -104,8 +124,8 @@ class GherkinParser(object):
 
     def p_description(self, p):
         """
-        description : DESCRIPTION
-                    | DESCRIPTION description
+        description : DESCRIPTION_LINE
+                    | DESCRIPTION_LINE description
         """
         p[0] = p[1]
         if len(p) > 2:
@@ -135,20 +155,28 @@ class GherkinParser(object):
 
     def p_steps(self, p):
         """
-        steps : STEP
-              | STEP steps
+        steps : step
+              | step steps
+        """
+        p[0] = [p[1]]
+        if len(p) > 2:
+            for item in p[2]:
+                p[0].append(item)
+
+    def p_step(self, p):
+        """
+        step : STEP
+             | STEP DOC_STRING
         """
         name = p[1]
         step_conjunction = None
         for conjunction in self.conjunctions:
             if name.startswith(conjunction):
                 step_conjunction, name = (conjunction, name.removeprefix(conjunction).strip())
-        step = TestStep(conjunction=step_conjunction, name=name)
-
-        p[0] = [step]
+        doc_string = None
         if len(p) > 2:
-            for item in p[2]:
-                p[0].append(item)
+            doc_string = p[2]
+        p[0] = TestStep(conjunction=step_conjunction, name=name, text=doc_string)
 
     def p_error(self, p):
         print(f'Syntax error at {p!r}')
@@ -172,12 +200,24 @@ Feature: My feature
     Background:
         Given background step1
         And background step2
+        ```
+        Background step2?
+        ===============
+        This is the text block for background step2.
+        Which could span multiple lines.
+        ```
         And background step3
         
     # Comment 1
-  Scenario: My Scenario 1
+  Example: My Scenario 1
     
     Given scenario 1 step 1
+    """
+    Scenario 1 step1?
+    ===============
+    This is the text block for Scenario 1 step1.
+    Which could span multiple lines.
+    """
     When scenario 1 step 2
       # sComment 1
     Then scenario 1 step 3
