@@ -1,3 +1,5 @@
+import re
+
 from ply.lex import lex, TOKEN
 from ply.yacc import yacc
 
@@ -11,7 +13,7 @@ from framework.core.models.TestStep import TestStep
 # noinspection PyPep8Naming,PyMethodMayBeStatic
 class GherkinLexer(object):
     # All tokens must be named in advance.
-    tokens = ('FEATURE', 'DESCRIPTION_LINE', 'BACKGROUND', 'SCENARIO', 'STEP', 'DOC_STRING')
+    tokens = ('FEATURE', 'DESCRIPTION_LINE', 'BACKGROUND', 'SCENARIO', 'STEP', 'DOC_STRING', 'TABLE')
 
     # Ignored token with an action associated with it
     @TOKEN(r'[\s]+')
@@ -65,6 +67,21 @@ class GherkinLexer(object):
         for i in range(len(doc_string_lines)):
             doc_string_lines[i] = doc_string_lines[i].lstrip()
         t.value = '\n'.join(doc_string_lines)
+        return t
+
+    @TOKEN(r'(((\s+)?\|.*\|(\s+)?)\n?)+')
+    def t_TABLE(self, t):
+        t.lexer.lineno += t.value.count('\n')
+        table = str(t.value).strip()
+        table_lines = table.splitlines()
+        t.value = []
+        for table_line in table_lines:
+            # re.split(r'(?<!\\)(?:\\{2})*"(?:(?<!\\)(?:\\{2})*\\"|[^"])+(?<!\\)(?:\\{2})*"')
+            # columns = re.split(r'(?:\\{2})*\|(?:(?<!\\)(?:\\{2})*\\\||[^|])+(?<!\\)(?:\\{2})*\|',
+            #                    table_line.strip())
+            # TODO: Escape sequences not handled
+            columns = table_line.strip().strip('|').split('|')
+            t.value.append([column.strip() for column in columns])
         return t
 
     @TOKEN(r'(\s+)?[^\n]+')
@@ -166,7 +183,9 @@ class GherkinParser(object):
     def p_step(self, p):
         """
         step : STEP
+             | STEP TABLE
              | STEP DOC_STRING
+             | STEP DOC_STRING TABLE
         """
         name = p[1]
         step_conjunction = None
@@ -175,8 +194,15 @@ class GherkinParser(object):
                 step_conjunction, name = (conjunction, name.removeprefix(conjunction).strip())
         doc_string = None
         if len(p) > 2:
-            doc_string = p[2]
-        p[0] = TestStep(conjunction=step_conjunction, name=name, text=doc_string)
+            if p.slice[2].type == 'DOC_STRING':
+                doc_string = p[2]
+                del p.slice[2]
+        table = None
+        if len(p) > 2:
+            if p.slice[2].type == 'TABLE':
+                table = p[2]
+                del p.slice[2]
+        p[0] = TestStep(conjunction=step_conjunction, name=name, text=doc_string, data={'table': table})
 
     def p_error(self, p):
         print(f'Syntax error at {p!r}')
@@ -207,6 +233,9 @@ Feature: My feature
         Which could span multiple lines.
         ```
         And background step3
+        | f1  |  f2 |  f3 |
+        | v11 | v12 | v13 |
+        | v21 | v22 | v23 |
         
     # Comment 1
   Example: My Scenario 1
