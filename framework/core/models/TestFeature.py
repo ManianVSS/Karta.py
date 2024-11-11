@@ -4,13 +4,14 @@ from typing import Optional, Dict
 from pydantic import BaseModel
 
 from framework.core.models.TestScenario import TestScenario, ScenarioResult
+from framework.core.models.TestStep import TestStep
 
 
 class TestFeature(BaseModel):
     name: Optional[str]
     description: Optional[str] = None
     tags: Optional[list[str]] = None
-    background_steps: Optional[list[TestScenario]] = []
+    background_steps: Optional[list[TestStep]] = []
     scenarios: list[TestScenario]
 
 

@@ -8,10 +8,10 @@ from framework.core.models.TestStep import TestStep
 
 # --- Tokenizer
 
-# noinspection PyPep8Naming
+# noinspection PyPep8Naming,PyMethodMayBeStatic
 class GherkinLexer(object):
     # All tokens must be named in advance.
-    tokens = ('FEATURE', 'SCENARIO', 'NAME', 'CONJUNCTION',)
+    tokens = ('FEATURE', 'DESCRIPTION', 'BACKGROUND', 'SCENARIO', 'STEP',)
 
     # Ignored token with an action associated with it
     @TOKEN(r'[\s]+')
@@ -20,27 +20,35 @@ class GherkinLexer(object):
 
     @TOKEN(r'(\s+)?\#[^\n]*')
     def t_ignore_COMMENT(self, t):
+        t.lexer.lineno += t.value.count('\n')
         t.value = t.value
 
-    @TOKEN(r'(\s+)?Feature:')
+    @TOKEN(r'(\s+)?Feature:([ \t]+)?[^\n]+')
     def t_FEATURE(self, t):
         t.lexer.lineno += t.value.count('\n')
         t.value = t.value.strip().removeprefix('Feature:')
         return t
 
-    @TOKEN(r'(\s+)?Scenario:')
+    @TOKEN(r'(\s+)?Background:')
+    def t_BACKGROUND(self, t):
+        t.lexer.lineno += t.value.count('\n')
+        t.value = t.value.strip()
+        return t
+
+    @TOKEN(r'(\s+)?Scenario:([ \t]+)?[^\n]+')
     def t_SCENARIO(self, t):
         t.lexer.lineno += t.value.count('\n')
         t.value = t.value.strip().removeprefix('Scenario:')
         return t
 
-    @TOKEN(r'(\s+)?(Given | When | Then | And | But)')
-    def t_CONJUNCTION(self, t):
+    @TOKEN(r'(\s+)?(Given | When | Then | And | But)([ \t]+)?[^\n]+')
+    def t_STEP(self, t):
+        t.lexer.lineno += t.value.count('\n')
         t.value = t.value.strip()
         return t
 
     @TOKEN(r'(\s+)?[^\n]+')
-    def t_NAME(self, t):
+    def t_DESCRIPTION(self, t):
         t.lexer.lineno += t.value.count('\n')
         t.value = t.value.strip()
         return t
@@ -57,8 +65,8 @@ class GherkinLexer(object):
 
         # Test it output
 
-    def test(self, data):
-        self.lexer.input(data)
+    def test(self, input_str):
+        self.lexer.input(input_str)
         while True:
             tok = self.lexer.token()
             if not tok:
@@ -67,24 +75,47 @@ class GherkinLexer(object):
 
 
 # --- Parser
-# noinspection PyPep8Naming
+# noinspection PyPep8Naming,PyMethodMayBeStatic
 class GherkinParser(object):
     tokens = GherkinLexer.tokens
+    conjunctions = ['Given', 'When', 'Then', 'But', 'And']
 
     # Write functions for each grammar rule which is
     # specified in the docstring.
     def p_feature(self, p):
         """
-        feature : FEATURE NAME scenarios
+        feature : FEATURE scenarios
+                | FEATURE description scenarios
+                | FEATURE background scenarios
+                | FEATURE description background scenarios
         """
-        # p is a sequence that represents rule contents.
-        #
-        # expression : term PLUS term
-        #   p[0]     : p[1] p[2] p[3]
-        #
-        if p.slice[1].type == 'COMMENT':
-            del p.slice[1]
-        p[0] = TestFeature(name=p[2].strip(), scenarios=p[3])  # ('feature', *p[1:],)
+        description = None
+        if p.slice[2].type == 'description':
+            description = p[2]
+            del p.slice[2]
+
+        background_steps = None
+        if p.slice[2].type == 'background':
+            background_steps = [*p[2]]
+            del p.slice[2]
+
+        p[0] = TestFeature(name=p[1].strip(), description=description, background_steps=background_steps,
+                           scenarios=p[2])
+
+    def p_description(self, p):
+        """
+        description : DESCRIPTION
+                    | DESCRIPTION description
+        """
+        p[0] = p[1]
+        if len(p) > 2:
+            p[0] = p[0] + '\n' + p[2]
+
+    def p_background(self, p):
+        """
+        background : BACKGROUND steps
+        """
+        p[0] = [*p[2]]
 
     def p_scenarios(self, p):
         """
@@ -95,37 +126,29 @@ class GherkinParser(object):
         if len(p) > 2:
             for item in p[2]:
                 p[0].append(item)
-        # ('scenarios', *p[1:])
 
     def p_scenario(self, p):
         """
-        scenario : SCENARIO NAME steps
+        scenario : SCENARIO steps
         """
-        if p.slice[1].type == 'COMMENT':
-            del p.slice[1]
-        p[0] = TestScenario(name=p[2].strip(), steps=p[3])  # ('scenario', *p[1:])
+        p[0] = TestScenario(name=p[1].strip(), steps=p[2])  # ('scenario', *p[1:])
 
     def p_steps(self, p):
         """
-        steps : step
-              | step steps
+        steps : STEP
+              | STEP steps
         """
-        p[0] = [p[1]]
+        name = p[1]
+        step_conjunction = None
+        for conjunction in self.conjunctions:
+            if name.startswith(conjunction):
+                step_conjunction, name = (conjunction, name.removeprefix(conjunction).strip())
+        step = TestStep(conjunction=step_conjunction, name=name)
+
+        p[0] = [step]
         if len(p) > 2:
             for item in p[2]:
                 p[0].append(item)
-        # p[0] = [*p[1:]]
-
-    def p_step(self, p):
-        """
-        step : CONJUNCTION NAME
-        """
-        if p.slice[1].type == 'COMMENT':
-            del p.slice[1]
-        step = TestStep(conjunction=p[1].strip(), name=p[2].strip())
-        # step.conjunction = p[1].strip()
-        # step.name = p[2].strip()
-        p[0] = step  # ('step', *p[1:])
 
     def p_error(self, p):
         print(f'Syntax error at {p!r}')
@@ -135,27 +158,38 @@ class GherkinParser(object):
         self.parser = yacc(module=self)
 
     def parse(self, source):
-        ast = parser.parser.parse(data)
-        return ast
+        return parser.parser.parse(data)
 
 
 data = '''
  # fComment 2
-Feature: Guess the word
-
-    # Comment 1
-  Scenario: Maker starts a game
+Feature: My feature
+    # Comment before description
+    This feature description describes the feature.
+    It is a multi line feature description.
     
-    When the Maker starts a game
+     # Comment for Background ## Background:
+    Background:
+        Given background step1
+        And background step2
+        And background step3
+        
+    # Comment 1
+  Scenario: My Scenario 1
+    
+    Given scenario 1 step 1
+    When scenario 1 step 2
       # sComment 1
-    Then the Maker waits for a Breaker to join
+    Then scenario 1 step 3
     
 # Comment 2
-  Scenario: Breaker joins a game
+  Scenario: My Scenario 2
+    Given scenario 2 step 1
+    When scenario 2 step 2
       # sComment 1
-    Given the Maker has started a game with the word "silky"
-    When the Breaker joins the Maker's game
-    Then the Breaker must guess a word with 5 characters
+    Then scenario 2 step 3
+    And scenario 2 step 4
+    But scenario 2 step 5
 '''
 
 # # Give the lexer some input
