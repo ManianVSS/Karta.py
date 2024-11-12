@@ -69,6 +69,21 @@ class GherkinLexer(object):
         t.value = '\n'.join(doc_string_lines)
         return t
 
+    def unescape(self, string):
+        escape_map = {
+            "\\n": "\n",
+            "\\r": "\r",
+            "\\b": "\b",
+            "\\t": "\t",
+            "\\|": "|",
+            "\\\"": "\"",
+            "\\\'": "\'",
+        }
+        string = str(string).strip()
+        for unescape_key in escape_map.keys():
+            string = string.replace(unescape_key, escape_map[unescape_key])
+        return string
+
     @TOKEN(r'(((\s+)?\|.*\|(\s+)?)\n?)+')
     def t_TABLE(self, t):
         t.lexer.lineno += t.value.count('\n')
@@ -77,11 +92,10 @@ class GherkinLexer(object):
         t.value = []
         for table_line in table_lines:
             # re.split(r'(?<!\\)(?:\\{2})*"(?:(?<!\\)(?:\\{2})*\\"|[^"])+(?<!\\)(?:\\{2})*"')
-            # columns = re.split(r'(?:\\{2})*\|(?:(?<!\\)(?:\\{2})*\\\||[^|])+(?<!\\)(?:\\{2})*\|',
-            #                    table_line.strip())
+            columns = re.findall(r'[\w(\\)(\|)\t]{1,}', table_line.strip())
             # TODO: Escape sequences not handled
-            columns = table_line.strip().strip('|').split('|')
-            t.value.append([column.strip() for column in columns])
+            # columns = table_line.strip().strip('|').split('|')
+            t.value.append([self.unescape(column) for column in columns if column != '|'])
         return t
 
     @TOKEN(r'(\s+)?[^\n]+')
@@ -215,7 +229,7 @@ class GherkinParser(object):
         return parser.parser.parse(data)
 
 
-data = '''
+data = r'''
  # fComment 2
 Feature: My feature
     # Comment before description
@@ -233,9 +247,9 @@ Feature: My feature
         Which could span multiple lines.
         ```
         And background step3
-        | f1  |  f2 |  f3 |
-        | v11 | v12 | v13 |
-        | v21 | v22 | v23 |
+        | f1\|  |  f2\n |  f3\t |
+        | v11   |  v12  |  v13  |
+        | v21   |  v 22  |  v23  |
         
     # Comment 1
   Example: My Scenario 1
