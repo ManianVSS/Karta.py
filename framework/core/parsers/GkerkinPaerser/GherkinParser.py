@@ -91,10 +91,7 @@ class GherkinLexer(object):
         table_lines = table.splitlines()
         t.value = []
         for table_line in table_lines:
-            # re.split(r'(?<!\\)(?:\\{2})*"(?:(?<!\\)(?:\\{2})*\\"|[^"])+(?<!\\)(?:\\{2})*"')
-            columns = re.findall(r'[\w(\\)(\|)\t]{1,}', table_line.strip())
-            # TODO: Escape sequences not handled
-            # columns = table_line.strip().strip('|').split('|')
+            columns = re.findall(r'(?<=\|)(?:\\\||\\n|\\t|[\w\s])*?(?=\|)', table_line.strip())
             t.value.append([self.unescape(column) for column in columns if column != '|'])
         return t
 
@@ -216,7 +213,15 @@ class GherkinParser(object):
             if p.slice[2].type == 'TABLE':
                 table = p[2]
                 del p.slice[2]
-        p[0] = TestStep(conjunction=step_conjunction, name=name, text=doc_string, data={'table': table})
+
+        table_data = []
+        if table and len(table) > 1:
+            for i in range(1, len(table)):
+                table_data.append({})
+                for j in range(len(table[i])):
+                    table_data[i - 1][table[0][j]] = table[i][j]
+
+        p[0] = TestStep(conjunction=step_conjunction, name=name, text=doc_string, data={'table_data': table_data})
 
     def p_error(self, p):
         print(f'Syntax error at {p!r}')
