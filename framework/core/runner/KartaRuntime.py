@@ -1,4 +1,6 @@
+import itertools
 import os
+import pathlib
 import traceback
 from datetime import datetime
 from types import NoneType
@@ -7,6 +9,7 @@ from framework.core.models.Context import Context
 from framework.core.models.TestFeature import TestFeature, FeatureResult
 from framework.core.models.TestScenario import ScenarioResult
 from framework.core.models.TestStep import StepResult, TestStep
+from framework.core.plugins.GherkinPlugin import GherkinPlugin
 from framework.core.plugins.KriyaPlugin import Kriya
 from framework.core.utils import ImportUtils
 
@@ -18,6 +21,12 @@ class KartaRuntime:
         self.default_step_runner = kriya_plugin
         self.default_feature_parser = kriya_plugin
         self.step_def_package = step_def_package
+        self.gherkin_plugin = GherkinPlugin()
+        self.parser_map = {
+            '.yml': self.default_feature_parser,
+            '.yaml': self.default_feature_parser,
+            '.feature': self.gherkin_plugin
+        }
 
     def init_framework(self, ):
         # Search for python modules in step definitions folder
@@ -30,7 +39,10 @@ class KartaRuntime:
 
     def run_feature_file(self, feature_file):
         # Load the feature file to run
-        feature = self.default_feature_parser.parse_feature_file(feature_file)
+        feature_file_extn = pathlib.Path(feature_file).suffix
+        if feature_file_extn not in self.parser_map.keys():
+            raise Exception("Unknown feature file type")
+        feature = self.parser_map[feature_file_extn].parse_feature_file(feature_file)
         return self.run_feature(feature)
 
     def run_step(self, step: TestStep, context: Context):
@@ -68,7 +80,7 @@ class KartaRuntime:
             context = Context()
             print('Running scenario ', str(scenario.name))
 
-            for step in scenario.steps:
+            for step in itertools.chain(feature.background_steps, scenario.steps):
                 try:
                     step_result = self.run_step(step, context)
                     if step_result.results and len(step_result.results) > 0:

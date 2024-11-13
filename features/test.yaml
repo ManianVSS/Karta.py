@@ -1,5 +1,8 @@
 ---
 name: Test feature
+background_steps:
+   - name: my sample step definition4
+   - name: my sample step definition1
 scenarios:
   - name: Test scenario 1
     steps:

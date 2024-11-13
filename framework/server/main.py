@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi import Request
 from starlette.responses import FileResponse
 
 from framework.core.models.Context import Context
@@ -37,6 +38,17 @@ async def get_steps():
 
 @app.post("/run_feature")
 async def run_feature_api(feature: TestFeature):
+    return karta_runtime.run_feature(feature)
+
+
+@app.post("/run_gherkin_feature")
+async def run_feature_api(request: Request):
+    """
+    <b><u>Can't try this out in the swagger UI as body input is not being allowed due to a limitation</u></b>.<br>
+    To use this you need to pass a gherkin feature file contents in body and set content type to text/plain
+    """
+    feature_source = (await request.body()).decode("utf-8")
+    feature = karta_runtime.gherkin_plugin.parse_feature(feature_source)
     return karta_runtime.run_feature(feature)
 
 

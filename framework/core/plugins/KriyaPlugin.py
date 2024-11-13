@@ -57,7 +57,7 @@ class Kriya(FeatureParser, StepRunner):
             except Exception as e:
                 return {}, False, str(e) + "\n" + traceback.format_exc()
         else:
-            message = "Step definition mapping for %s could not be found".format(step_to_call)
+            message = "Step definition mapping for {} could not be found".format(step_to_call)
             return {}, False, message
 
     def parse_feature_file(self, feature_file: str):
