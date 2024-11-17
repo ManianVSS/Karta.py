@@ -3,8 +3,7 @@ from fastapi import Request
 from starlette.responses import FileResponse
 
 from framework.core.models.Context import Context
-from framework.core.models.TestFeature import TestFeature
-from framework.core.models.TestStep import TestStep
+from framework.core.models.TestCatalog import TestFeature, TestStep
 from framework.core.runner.KartaRuntime import KartaRuntime
 
 karta_runtime = KartaRuntime(step_def_package='step_definitions')

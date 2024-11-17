@@ -1,6 +1,6 @@
 import abc
 
-from framework.core.models.TestStep import TestStep
+from framework.core.models.TestCatalog import TestStep
 
 
 class StepRunner(metaclass=abc.ABCMeta):

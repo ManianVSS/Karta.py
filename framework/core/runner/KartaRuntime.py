@@ -6,9 +6,7 @@ from datetime import datetime
 from types import NoneType
 
 from framework.core.models.Context import Context
-from framework.core.models.TestFeature import TestFeature, FeatureResult
-from framework.core.models.TestScenario import ScenarioResult
-from framework.core.models.TestStep import StepResult, TestStep
+from framework.core.models.TestCatalog import TestFeature, FeatureResult, ScenarioResult, StepResult, TestStep
 from framework.core.plugins.GherkinPlugin import GherkinPlugin
 from framework.core.plugins.KriyaPlugin import Kriya
 from framework.core.utils import ImportUtils

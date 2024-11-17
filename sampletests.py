@@ -1,7 +1,4 @@
-import json
-
 from framework.core.runner.main import *
-from framework.core.utils import JSONEncoders
 
 karta_runtime = KartaRuntime(step_def_package='step_definitions')
 karta_runtime.init_framework()

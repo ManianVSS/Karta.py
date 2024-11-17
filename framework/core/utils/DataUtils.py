@@ -1,9 +1,3 @@
-from copy import deepcopy
-from os import name
-
-
-# clone_dict = deepcopy
-
 
 def merge_lists(*lists_to_merge):
     merged_list = []

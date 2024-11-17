@@ -4,9 +4,7 @@ from copy import deepcopy
 from ply.lex import lex, TOKEN
 from ply.yacc import yacc
 
-from framework.core.models.TestFeature import TestFeature
-from framework.core.models.TestScenario import TestScenario
-from framework.core.models.TestStep import TestStep
+from framework.core.models.TestCatalog import TestFeature, TestScenario, TestStep
 
 
 # --- Tokenizer
@@ -22,33 +20,34 @@ class GherkinLexer(object):
     @TOKEN(r'[\s]+')
     def t_ignore_newline(self, t):
         t.lexer.lineno += t.value.count('\n')
+        pass
 
     @TOKEN(r'(\s+)?\#[^\n]*')
     def t_ignore_COMMENT(self, t):
-        t.lexer.lineno += t.value.count('\n')
+        # t.lexer.lineno += t.value.count('\n')
         t.value = t.value
 
     @TOKEN(r'(\s+)?\@[^\n@]*')
     def t_TAG(self, t):
-        t.lexer.lineno += t.value.count('\n')
+        # t.lexer.lineno += t.value.count('\n')
         t.value = t.value.strip().removeprefix('@').strip()
         return t
 
     @TOKEN(r'(\s+)?Feature:([ \t]+)?[^\n]+')
     def t_FEATURE(self, t):
-        t.lexer.lineno += t.value.count('\n')
+        # t.lexer.lineno += t.value.count('\n')
         t.value = t.value.strip().removeprefix('Feature:')
         return t
 
     @TOKEN(r'(\s+)?Background:')
     def t_BACKGROUND(self, t):
-        t.lexer.lineno += t.value.count('\n')
+        #t.lexer.lineno += t.value.count('\n')
         t.value = t.value.strip()
         return t
 
     @TOKEN(r'(\s+)?(Scenario|Example):([ \t]+)?[^\n]+')
     def t_SCENARIO(self, t):
-        t.lexer.lineno += t.value.count('\n')
+        #t.lexer.lineno += t.value.count('\n')
         t.value = t.value.strip()
         if t.value.startswith('Scenario:'):
             t.value = t.value.removeprefix('Scenario:')
@@ -58,26 +57,26 @@ class GherkinLexer(object):
 
     @TOKEN(r'(\s+)?Scenario[ ]Outline:([ \t]+)?[^\n]+')
     def t_SCENARIO_OUTLINE(self, t):
-        t.lexer.lineno += t.value.count('\n')
+        #t.lexer.lineno += t.value.count('\n')
         t.value = t.value.strip()
         t.value = t.value.removeprefix('Scenario Outline:')
         return t
 
     @TOKEN(r'(\s+)?Examples:')
     def t_EXAMPLES(self, t):
-        t.lexer.lineno += t.value.count('\n')
+        #t.lexer.lineno += t.value.count('\n')
         t.value = t.value.strip()
         return t
 
     @TOKEN(r'(\s+)?(Given | When | Then | And | But)([ \t]+)?[^\n]+')
     def t_STEP(self, t):
-        t.lexer.lineno += t.value.count('\n')
+        #t.lexer.lineno += t.value.count('\n')
         t.value = t.value.strip()
         return t
 
     @TOKEN(r'(\s+)? ("""(.|\n)*""")|(```(.|\n)*```)')
     def t_DOC_STRING(self, t):
-        t.lexer.lineno += t.value.count('\n')
+        #t.lexer.lineno += t.value.count('\n')
         doc_string = t.value.strip()
         if doc_string.startswith(r'"""'):
             doc_string = doc_string.removeprefix(r'"""').removesuffix(r'"""').strip()
@@ -108,7 +107,7 @@ class GherkinLexer(object):
 
     @TOKEN(r'(((\s+)?\|.*\|(\s+)?)\n?)+')
     def t_TABLE(self, t):
-        t.lexer.lineno += t.value.count('\n')
+        #t.lexer.lineno += t.value.count('\n')
         table = str(t.value).strip()
         table_lines = table.splitlines()
         t.value = []
@@ -119,7 +118,7 @@ class GherkinLexer(object):
 
     @TOKEN(r'(\s+)?[^\n]+')
     def t_DESCRIPTION_LINE(self, t):
-        t.lexer.lineno += t.value.count('\n')
+        #t.lexer.lineno += t.value.count('\n')
         t.value = t.value.strip()
         return t
 
@@ -175,7 +174,7 @@ class GherkinParser(object):
             del p.slice[2]
 
         p[0] = TestFeature(name=p[1].strip(), description=description, background_steps=background_steps,
-                           scenarios=p[2], tags=tags)
+                           scenarios=p[2], tags=tags, line_number=p.slice[1].lineno, )
 
     def p_description(self, p):
         """
@@ -230,7 +229,8 @@ class GherkinParser(object):
             del p.slice[1]
 
         if p.slice[1].type == 'SCENARIO':
-            p[0] = TestScenario(name=p[1].strip(), steps=p[2], tags=tags)  # ('scenario', *p[1:])
+            p[0] = TestScenario(name=p[1].strip(), steps=p[2], tags=tags,
+                                line_number=p.slice[1].lineno, )  # ('scenario', *p[1:])
         else:
             table = p[4]
             table_data = []
@@ -249,7 +249,8 @@ class GherkinParser(object):
                         table_data[i - 1][table[0][j]] = table[i][j]
                         scenario_step.name = scenario_step.name.replace("<" + table[0][j] + ">", table[i][j])
                     scenario_steps.append(scenario_step)
-                scenarios.append(TestScenario(name=p[1].strip(), steps=scenario_steps, tags=tags))
+                scenarios.append(
+                    TestScenario(name=p[1].strip(), steps=scenario_steps, tags=tags, line_number=p.slice[1].lineno, ))
 
             p[0] = scenarios
 
@@ -293,7 +294,8 @@ class GherkinParser(object):
                 for j in range(len(table[i])):
                     table_data[i - 1][table[0][j]] = table[i][j]
 
-        p[0] = TestStep(conjunction=step_conjunction, name=name, text=doc_string, data={'table_data': table_data})
+        p[0] = TestStep(conjunction=step_conjunction, name=name, text=doc_string, data={'table_data': table_data},
+                        line_number=p.slice[1].lineno, )
 
     def p_error(self, p):
         print(f'Syntax error at {p!r}')
@@ -379,7 +381,7 @@ if __name__ == '__main__':
     gherkin_lexer.test(data)
 
     # Build the parser
-    parser = GherkinParser(lexer=gherkin_lexer)
+    parser = GherkinParser()
 
     # Parse an expression
     ast = parser.parse(data)

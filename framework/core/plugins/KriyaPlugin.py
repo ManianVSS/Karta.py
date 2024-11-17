@@ -5,8 +5,7 @@ import yaml
 
 from framework.core.interfaces.FeatureParser import FeatureParser
 from framework.core.interfaces.StepRunner import StepRunner
-from framework.core.models.TestFeature import TestFeature
-from framework.core.models.TestStep import TestStep
+from framework.core.models.TestCatalog import TestFeature, TestStep
 
 
 def step_def(step_identifier):
