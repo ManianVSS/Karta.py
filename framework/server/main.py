@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi import Request
 from starlette.responses import FileResponse
 
-from framework.core.models.Context import Context
+from framework.core.models.configuration import Context
 from framework.core.models.TestCatalog import TestFeature, TestStep
 from framework.core.runner.KartaRuntime import KartaRuntime
 

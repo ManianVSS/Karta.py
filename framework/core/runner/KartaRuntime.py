@@ -5,7 +5,7 @@ import traceback
 from datetime import datetime
 from types import NoneType
 
-from framework.core.models.Context import Context
+from framework.core.models.configuration import Context
 from framework.core.models.TestCatalog import TestFeature, FeatureResult, ScenarioResult, StepResult, TestStep
 from framework.core.plugins.GherkinPlugin import GherkinPlugin
 from framework.core.plugins.KriyaPlugin import Kriya
@@ -35,13 +35,15 @@ class KartaRuntime:
             module_name = os.path.split(py_file)[-1].strip(".py")
             imported_step_def_module = ImportUtils.dynamic_import(module_name, py_file)
 
-    def run_feature_file(self, feature_file):
+    def run_feature_file(self, feature_file, base_context=None):
         # Load the feature file to run
+        if base_context is None:
+            base_context = Context()
         feature_file_extn = pathlib.Path(feature_file).suffix
         if feature_file_extn not in self.parser_map.keys():
             raise Exception("Unknown feature file type")
         feature = self.parser_map[feature_file_extn].parse_feature_file(feature_file)
-        return self.run_feature(feature)
+        return self.run_feature(feature, base_context=base_context)
 
     def run_step(self, step: TestStep, context: Context):
         print('Running step ', str(step.name))
@@ -66,7 +68,9 @@ class KartaRuntime:
         step_result.end_time = datetime.now()
         return step_result
 
-    def run_feature(self, feature: TestFeature):
+    def run_feature(self, feature: TestFeature, base_context=None):
+        if base_context is None:
+            base_context = Context()
         feature_result = FeatureResult()
         feature_result.name = feature.name
         feature_result.start_time = datetime.now()

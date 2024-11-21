@@ -25,3 +25,21 @@ class VarClass(dict):
 
     def load_from_json_file(self, json_file: Path):
         self.load_from_json(json_file.read_text())
+
+    def replace_variables_in_string(self, string_to_process: str, variable_prefix='${', variable_suffix='}'):
+        replaced_string = string_to_process
+
+        for variable, value in self.items():
+            replaced_string = replaced_string.replace(variable_prefix + variable + variable_suffix, str(value))
+
+        return replaced_string
+
+
+class Context(VarClass):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+
+class TestProperties(VarClass):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
