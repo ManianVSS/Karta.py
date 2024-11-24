@@ -1,4 +1,4 @@
-from framework.core.models.configuration import Context
+from framework.core.models.generic import Context
 
 
 def replace_variables_from_dict(string_to_process, variable_dictionary, variable_prefix='${', variable_suffix='}'):

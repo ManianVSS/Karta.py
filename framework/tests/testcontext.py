@@ -1,4 +1,4 @@
-from framework.core.models.configuration import Context
+from framework.core.models.generic import Context
 
 
 def test():

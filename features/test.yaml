@@ -1,10 +1,12 @@
 ---
 name: Test feature
-background_steps:
+setup_steps:
    - name: my sample step definition4
    - name: my sample step definition1
 scenarios:
   - name: Test scenario 1
+#    setup_steps: []
+#    teardown_steps: []
     steps:
       - name: my sample step definition1
         data:

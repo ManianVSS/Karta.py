@@ -1,11 +1,12 @@
 import traceback
 from copy import deepcopy
+from pathlib import Path
 
 import yaml
 
-from framework.core.interfaces.FeatureParser import FeatureParser
-from framework.core.interfaces.StepRunner import StepRunner
-from framework.core.models.TestCatalog import TestFeature, TestStep
+from framework.core.interfaces.test_interfaces import FeatureParser, StepRunner
+from framework.core.models.test_catalog import TestFeature, TestStep
+from framework.core.utils import importutils
 
 
 def step_def(step_identifier):
@@ -34,8 +35,15 @@ Then = step_def
 class Kriya(FeatureParser, StepRunner):
     step_definition_mapping = {}
 
-    def get_steps(self):
-        return self.step_definition_mapping
+    def __init__(self, feature_directory: str, step_def_package: str):
+        self.feature_directory = feature_directory
+        # Search for python modules in step definitions folder
+        step_definition_module_python_files = importutils.get_python_files(step_def_package)
+
+        # Scan for each python module if it has step definitions, add them to step definition mapping
+        for py_file in step_definition_module_python_files:
+            module_name = Path(py_file).stem  # os.path.split(py_file)[-1].strip(".py")
+            imported_step_def_module = importutils.import_module_from_file(module_name, py_file)
 
     def parse_feature(self, feature_source: str):
         try:
@@ -44,6 +52,20 @@ class Kriya(FeatureParser, StepRunner):
             return feature_object
         except yaml.YAMLError as exc:
             print(exc)
+
+    def get_feature_files(self, ):
+        parsed_features = []
+        folder_path = Path(self.feature_directory)
+        for file in folder_path.glob("*.yaml"):
+            parsed_feature = self.parse_feature_file(file)
+            parsed_features.append(parsed_feature)
+        return parsed_features
+
+    def get_steps(self) -> list[str]:
+        return [*self.step_definition_mapping.keys()]
+
+    def is_step_available(self, name: str) -> bool:
+        return name in self.step_definition_mapping.keys()
 
     def run_step(self, test_step: TestStep, context: dict):
         step_to_call = test_step.name.strip()
@@ -61,4 +83,7 @@ class Kriya(FeatureParser, StepRunner):
 
     def parse_feature_file(self, feature_file: str):
         with open(feature_file, "r") as stream:
-            return self.parse_feature(stream.read())
+            parsed_feature = self.parse_feature(stream.read())
+            # str(Path(feature_file).resolve())
+            parsed_feature.source = feature_file
+            return parsed_feature

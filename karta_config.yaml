@@ -1,0 +1,25 @@
+plugins:
+  Kriya:
+    module_name: framework.core.plugins.kriya
+    class_name: Kriya
+    init:
+      args: [ ]
+      kwargs:
+        step_def_package: step_definitions
+        feature_directory: features
+
+  Gherkin:
+    module_name: framework.core.plugins.gherkin
+    class_name: GherkinPlugin
+    init:
+      args: [ ]
+      kwargs:
+        feature_directory: features
+
+step_runners:
+  - Kriya
+
+parser_map:
+  .yml: Kriya
+  .yaml: Kriya
+  .feature: Gherkin

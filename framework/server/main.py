@@ -2,12 +2,9 @@ from fastapi import FastAPI
 from fastapi import Request
 from starlette.responses import FileResponse
 
-from framework.core.models.configuration import Context
-from framework.core.models.TestCatalog import TestFeature, TestStep
-from framework.core.runner.KartaRuntime import KartaRuntime
-
-karta_runtime = KartaRuntime(step_def_package='step_definitions')
-karta_runtime.init_framework()
+from framework.core.models.generic import Context
+from framework.core.models.test_catalog import TestFeature, TestStep
+from framework.core.runner.runtime import karta_runtime
 
 app = FastAPI(
     title="Karta.py",
@@ -32,7 +29,7 @@ async def get_index_html():
 
 @app.get("/steps")
 async def get_steps():
-    return [key for key in karta_runtime.default_step_runner.get_steps().keys()]
+    return [key for key in karta_runtime.get_steps()]
 
 
 @app.post("/run_feature")
@@ -47,7 +44,8 @@ async def run_feature_api(request: Request):
     To use this you need to pass a gherkin feature file contents in body and set content type to text/plain
     """
     feature_source = (await request.body()).decode("utf-8")
-    feature = karta_runtime.gherkin_plugin.parse_feature(feature_source)
+    feature = karta_runtime.plugins['Gherkin'].parse_feature(feature_source)
+    feature.source = request.query_params["source"] if ("source" in request.query_params.keys()) else request.url.path
     return karta_runtime.run_feature(feature)
 
 

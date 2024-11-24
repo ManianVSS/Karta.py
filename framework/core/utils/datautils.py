@@ -1,3 +1,14 @@
+def get_empty_tuple():
+    return tuple()
+
+
+def get_empty_list():
+    return list()
+
+
+def get_empty_dict():
+    return dict()
+
 
 def merge_lists(*lists_to_merge):
     merged_list = []
@@ -66,4 +77,3 @@ def increment_alphanumerical_string(current_string):
                     carry = 1
 
     return str(char_array)
-

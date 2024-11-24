@@ -1,5 +1,10 @@
 import json
 from pathlib import Path
+from typing import Optional
+
+from pydantic import BaseModel, Field
+
+from framework.core.utils.datautils import get_empty_dict, get_empty_list
 
 
 class VarClass(dict):
@@ -43,3 +48,8 @@ class Context(VarClass):
 class TestProperties(VarClass):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+
+class FunctionArgs(BaseModel):
+    args: Optional[list] = Field(default_factory=get_empty_list)
+    kwargs: Optional[dict] = Field(default_factory=get_empty_dict)

@@ -1,6 +1,6 @@
 import random
 
-from framework.core.plugins.KriyaPlugin import step_def
+from framework.core.plugins.kriya import step_def
 
 
 @step_def("my sample step definition3")
