@@ -43,7 +43,7 @@ class Kriya(FeatureParser, StepRunner):
         # Scan for each python module if it has step definitions, add them to step definition mapping
         for py_file in step_definition_module_python_files:
             module_name = Path(py_file).stem  # os.path.split(py_file)[-1].strip(".py")
-            imported_step_def_module = importutils.import_module_from_file(module_name, py_file)
+            importutils.import_module_from_file(module_name, py_file)
 
     def parse_feature(self, feature_source: str):
         try:
@@ -53,11 +53,18 @@ class Kriya(FeatureParser, StepRunner):
         except yaml.YAMLError as exc:
             print(exc)
 
-    def get_feature_files(self, ):
+    def parse_feature_file(self, feature_file: str) -> TestFeature:
+        with open(feature_file, "r") as stream:
+            parsed_feature = self.parse_feature(stream.read())
+            # str(Path(feature_file).resolve())
+            parsed_feature.source = feature_file
+            return parsed_feature
+
+    def get_feature_files(self, ) -> [str]:
         parsed_features = []
         folder_path = Path(self.feature_directory)
         for file in folder_path.glob("*.yaml"):
-            parsed_feature = self.parse_feature_file(file)
+            parsed_feature = self.parse_feature_file(str(file))
             parsed_features.append(parsed_feature)
         return parsed_features
 
@@ -80,10 +87,3 @@ class Kriya(FeatureParser, StepRunner):
         else:
             message = "Step definition mapping for {} could not be found".format(step_to_call)
             return {}, False, message
-
-    def parse_feature_file(self, feature_file: str):
-        with open(feature_file, "r") as stream:
-            parsed_feature = self.parse_feature(stream.read())
-            # str(Path(feature_file).resolve())
-            parsed_feature.source = feature_file
-            return parsed_feature

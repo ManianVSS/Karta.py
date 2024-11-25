@@ -10,6 +10,10 @@ class FeatureParser(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
+    def parse_feature_file(self, feature_file: str) -> TestFeature:
+        raise NotImplementedError
+    
+    @abc.abstractmethod
     def get_feature_files(self, ) -> [str]:
         raise NotImplementedError
 

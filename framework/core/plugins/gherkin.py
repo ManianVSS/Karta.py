@@ -17,7 +17,7 @@ class GherkinPlugin(FeatureParser):
     def get_steps(self):
         return self.step_definition_mapping
 
-    def parse_feature(self, feature_source: str):
+    def parse_feature(self, feature_source: str) -> TestFeature:
         try:
             feature_object = self.parser.parse(feature_source)
             return feature_object
@@ -31,10 +31,10 @@ class GherkinPlugin(FeatureParser):
             parsed_feature.source = feature_file
             return parsed_feature
 
-    def get_feature_files(self):
+    def get_feature_files(self, ) -> [str]:
         parsed_features = []
         folder_path = Path(self.feature_directory)
         for file in folder_path.glob("*.feature"):
-            parsed_feature = self.parse_feature_file(file)
+            parsed_feature = self.parse_feature_file(str(file))
             parsed_features.append(parsed_feature)
         return parsed_features
