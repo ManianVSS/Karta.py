@@ -2,3 +2,5 @@ fastapi[standard]
 PyYAML
 pydantic
 ply
+starlette
+uvicorn

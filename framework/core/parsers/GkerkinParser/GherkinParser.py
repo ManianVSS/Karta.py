@@ -1,4 +1,3 @@
-import functools
 import re
 from copy import deepcopy
 
@@ -7,11 +6,12 @@ from ply.yacc import yacc
 
 from framework.core.models.test_catalog import TestFeature, TestScenario, TestStep
 from framework.core.utils.funcutils import wrap_function_before
+from framework.core.utils.logger import logger
 
 
 # --- Tokenizer
 
-# noinspection PyPep8Naming,PyMethodMayBeStatic
+# noinspection PyPep8Naming,PyMethodMayBeStatic,PyTypeChecker
 class GherkinLexer(object):
     # All tokens must be named in advance.
     tokens = (
@@ -112,7 +112,7 @@ class GherkinLexer(object):
     def t_TABLE(self, t):
         t.lexer.lineno += t.value.count('\n')
         table = str(t.value).strip()
-        table_lines = table.splitlines()
+        table_lines = str(table).splitlines()
         t.value = []
         for table_line in table_lines:
             columns = re.findall(r'(?<=\|)(?:\\\||\\n|\\t|[\w\s])*?(?=\|)', table_line.strip())
@@ -127,7 +127,7 @@ class GherkinLexer(object):
 
     # Error handler for illegal characters
     def t_error(self, t):
-        print(f'Illegal character {t.value[0]!r}')
+        logger.error(f'Illegal character {t.value[0]!r}')
         t.lexer.skip(1)
 
         # Build the lexer
@@ -147,7 +147,7 @@ class GherkinLexer(object):
             tok = self.lexer.token()
             if not tok:
                 break
-            print(tok)
+            logger.info(tok)
 
 
 # --- Parser
@@ -307,7 +307,7 @@ class GherkinParser(object):
         p[0].line_number = p.slice[1].lineno
 
     def p_error(self, p):
-        print(f'Syntax error at {p!r}')
+        logger.error(f'Syntax error at {p!r}')
 
     def __init__(self, lexer=GherkinLexer()):
         self.lexer = lexer
@@ -395,4 +395,4 @@ if __name__ == '__main__':
 
     # Parse an expression
     ast = parser.parse(data)
-    print(ast)
+    logger.info(ast)

@@ -7,13 +7,14 @@ import yaml
 from framework.core.interfaces.test_interfaces import FeatureParser, StepRunner
 from framework.core.models.test_catalog import TestFeature, TestStep
 from framework.core.utils import importutils
+from framework.core.utils.logger import logger
 
 
 def step_def(step_identifier):
     def register_step_definition(func):
         step_identifier_str = str(step_identifier)
         if step_identifier_str not in Kriya.step_definition_mapping:
-            print("registering ", step_identifier_str)
+            logger.info("registering %s", step_identifier_str)
             Kriya.step_definition_mapping[step_identifier_str] = func
 
         return func
@@ -51,7 +52,7 @@ class Kriya(FeatureParser, StepRunner):
             feature_object = TestFeature.model_validate(feature_raw_object)
             return feature_object
         except yaml.YAMLError as exc:
-            print(exc)
+            logger.info(exc)
 
     def parse_feature_file(self, feature_file: str) -> TestFeature:
         with open(feature_file, "r") as stream:

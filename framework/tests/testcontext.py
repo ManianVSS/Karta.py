@@ -1,4 +1,5 @@
 from framework.core.models.generic import Context
+from framework.core.utils.logger import logger
 
 
 def test():
@@ -13,15 +14,15 @@ def test():
     my_context.dynamic_key_as_attr = "DynamicValue"
 
     my_context.new_key = my_context.dynamic_key_as_attr + ' updated'
-    print(str(my_context))
+    logger.info(str(my_context))
 
     for key in my_context.keys():
-        print(str(key), '=', str(my_context[key]))
+        logger.info("%s = %s", str(key), str(my_context[key]))
 
     try:
-        print(my_context.unknown_key_error)
+        logger.info(my_context.unknown_key_error)
     except AttributeError:
-        print("Got error for unknown attribute as expected")
+        logger.info("Got error for unknown attribute as expected")
 
 
 if __name__ == '__main__':

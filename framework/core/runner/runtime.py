@@ -2,6 +2,7 @@ import itertools
 import pathlib
 import traceback
 from datetime import datetime
+from importlib import import_module
 from pathlib import Path
 from types import NoneType
 
@@ -9,10 +10,10 @@ import yaml
 
 from framework.core.interfaces.test_interfaces import StepRunner, FeatureParser
 from framework.core.models.generic import Context
-from framework.core.models.karta_config import KartaConfig, default_karta_config, PluginConfig
+from framework.core.models.karta_config import KartaConfig, default_karta_config
 from framework.core.models.test_catalog import TestFeature, FeatureResult, ScenarioResult, StepResult, TestStep, \
     TestScenario
-from importlib import import_module
+from framework.core.utils.logger import logger
 
 
 class KartaRuntime:
@@ -72,7 +73,7 @@ class KartaRuntime:
         return steps
 
     def run_step(self, step: TestStep, context: Context):
-        print('Running step ', str(step.name))
+        logger.info('Running step %s', str(step.name))
         step_result = StepResult(name=step.name, )
         step_result.source = step.source
         step_result.line_number = step.line_number
@@ -108,7 +109,7 @@ class KartaRuntime:
         scenario_result.line_number = scenario.line_number
         scenario_result.start_time = datetime.now()
         context = Context(**base_context)
-        print('Running scenario ', str(scenario.name))
+        logger.info('Running scenario %s', str(scenario.name))
         for step in itertools.chain(scenario.parent.setup_steps, scenario.steps):
             try:
                 step_result = self.run_step(step, context)
@@ -132,7 +133,7 @@ class KartaRuntime:
         feature_result.source = feature.source
         feature_result.line_number = feature.line_number
         feature_result.start_time = datetime.now()
-        print('Running feature ', str(feature.name))
+        logger.info('Running feature %s', str(feature.name))
         for scenario in feature.scenarios:
             scenario_result = self.run_scenario(scenario, base_context, )
             scenario_result._parent = feature_result

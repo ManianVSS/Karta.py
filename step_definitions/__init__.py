@@ -1,1 +1,3 @@
-print("********** Step definitions package initialization **********")
+from framework.core.utils.logger import logger
+
+logger.info("********** Step definitions package initialization **********")

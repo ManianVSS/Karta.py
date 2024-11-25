@@ -76,4 +76,4 @@ def increment_alphanumerical_string(current_string):
                     char_array[j] = '0'
                     carry = 1
 
-    return str(char_array)
+    return str(char_array), carry

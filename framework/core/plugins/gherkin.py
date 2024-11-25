@@ -5,6 +5,7 @@ import yaml
 from framework.core.interfaces.test_interfaces import FeatureParser
 from framework.core.models.test_catalog import TestFeature
 from framework.core.parsers.GkerkinParser.GherkinParser import GherkinParser
+from framework.core.utils.logger import logger
 
 
 class GherkinPlugin(FeatureParser):
@@ -22,7 +23,7 @@ class GherkinPlugin(FeatureParser):
             feature_object = self.parser.parse(feature_source)
             return feature_object
         except yaml.YAMLError as exc:
-            print(exc)
+            logger.info(exc)
 
     def parse_feature_file(self, feature_file: str) -> TestFeature:
         with open(feature_file, "r") as stream:

@@ -1,5 +1,4 @@
 import abc
-from typing import Callable
 
 from framework.core.models.test_catalog import TestStep, TestFeature, TestScenario
 
@@ -12,7 +11,7 @@ class FeatureParser(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def parse_feature_file(self, feature_file: str) -> TestFeature:
         raise NotImplementedError
-    
+
     @abc.abstractmethod
     def get_feature_files(self, ) -> [str]:
         raise NotImplementedError
