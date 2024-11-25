@@ -9,32 +9,39 @@ import yaml
 
 from framework.core.interfaces.test_interfaces import StepRunner, FeatureParser
 from framework.core.models.generic import Context
-from framework.core.models.karta_config import KartaConfig, default_karta_config
+from framework.core.models.karta_config import KartaConfig, default_karta_config, PluginConfig
 from framework.core.models.test_catalog import TestFeature, FeatureResult, ScenarioResult, StepResult, TestStep, \
     TestScenario
 from importlib import import_module
 
 
 class KartaRuntime:
-    def __init__(self, karta_config: KartaConfig = default_karta_config):
-        self.karta_config = karta_config
+    config: KartaConfig = default_karta_config
+    plugins: dict[str, StepRunner | FeatureParser] = {}
+    step_runners: list[StepRunner] = []
+    parser_map: dict[str, FeatureParser] = {}
 
-        self.plugins = {}
-        for plugin_name, plugin_config in karta_config.plugins.items():
+    def __init__(self, config: KartaConfig = default_karta_config):
+        self.load_config(config)
+
+    def load_config(self, config: KartaConfig = default_karta_config):
+        self.config = config
+        self.plugins.clear()
+        for plugin_name, plugin_config in self.config.plugins.items():
             plugin_module = import_module(plugin_config.module_name)
             plugin_class = getattr(plugin_module, plugin_config.class_name)
             plugin = plugin_class(*plugin_config.init.args, **plugin_config.init.kwargs)
             self.plugins[plugin_name] = plugin
 
-        self.step_runners = []
-        for step_runner_name in karta_config.step_runners:
+        self.step_runners.clear()
+        for step_runner_name in self.config.step_runners:
             plugin = self.plugins[step_runner_name]
             if not isinstance(plugin, StepRunner):
                 raise Exception("Passed plugin is not a step runner" + str(plugin.__class__))
             self.step_runners.append(plugin)
 
-        self.parser_map = {}
-        for extension, feature_parser_name in karta_config.parser_map.items():
+        self.parser_map.clear()
+        for extension, feature_parser_name in self.config.parser_map.items():
             if feature_parser_name not in self.plugins.keys():
                 raise Exception("Unknown feature source parser plugin name " + feature_parser_name)
             plugin = self.plugins[feature_parser_name]
@@ -146,4 +153,4 @@ if config_file_path.exists():
         karta_config_raw = yaml.safe_load(config_yaml_string)
         karta_config = KartaConfig.model_validate(karta_config_raw)
 
-karta_runtime = KartaRuntime(karta_config=karta_config)
+karta_runtime = KartaRuntime(config=karta_config)
