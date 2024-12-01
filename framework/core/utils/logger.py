@@ -1,4 +1,6 @@
 import logging
+import os
+import time
 
 # Create a logger
 logger = logging.getLogger('karta_logger')
@@ -7,8 +9,10 @@ logger.setLevel(logging.DEBUG)
 # Create a formatter to define the log format
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 
+os.makedirs("logs", exist_ok=True)
 # Create a file handler to write logs to a file
-file_handler = logging.FileHandler('karta.log')
+file_name = 'logs/kartaRun{}.log'.format(time.strftime("%Y_%m_%d-%H_%M_%S"))
+file_handler = logging.FileHandler(file_name)
 file_handler.setLevel(logging.DEBUG)
 file_handler.setFormatter(formatter)
 

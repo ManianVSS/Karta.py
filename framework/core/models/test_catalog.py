@@ -16,6 +16,9 @@ class TestNode(BaseModel):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
+    def __hash__(self):
+        return id(self)
+
     @property
     def parent(self):
         return self._parent
@@ -96,8 +99,9 @@ class StepResult(TestNode):
 
 
 class TestScenario(TestNode):
+    name: Optional[str] = None
     description: Optional[str] = None
-    tags: Optional[list[str]] = None
+    tags: Optional[set[str]] = None
     setup_steps: Optional[list[TestStep]] = Field(default_factory=get_empty_list)
     steps: list[TestStep]
     teardown_steps: Optional[list[TestStep]] = Field(default_factory=get_empty_list)
@@ -144,10 +148,11 @@ class ScenarioResult(TestNode):
 
 
 class TestFeature(TestNode):
+    name: Optional[str] = None
     description: Optional[str] = None
-    tags: Optional[list[str]] = None
+    tags: Optional[set[str]] = None
     setup_steps: Optional[list[TestStep]] = Field(default_factory=get_empty_list)
-    scenarios: list[TestScenario]
+    scenarios: set[TestScenario]
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

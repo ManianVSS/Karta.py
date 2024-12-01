@@ -1,12 +1,14 @@
 ---
 name: Test feature
+tags: [ 'my_tag1', 'my_tag2', 'my_tag3', ]
 setup_steps:
-   - name: my sample step definition4
-   - name: my sample step definition1
+  - name: my sample step definition4
+  - name: my sample step definition1
 scenarios:
   - name: Test scenario 1
-#    setup_steps: []
-#    teardown_steps: []
+    tags: [ 'my_scenario_tag1', 'my_scenario_tag2', 'my_scenario_tag3', ]
+    #    setup_steps: []
+    #    teardown_steps: []
     steps:
       - name: my sample step definition1
         data:

@@ -4,7 +4,7 @@ import yaml
 
 from framework.core.interfaces.test_interfaces import FeatureParser
 from framework.core.models.test_catalog import TestFeature
-from framework.core.parsers.GkerkinParser.GherkinParser import GherkinParser
+from framework.parsers.GkerkinParser.GherkinParser import GherkinParser
 from framework.core.utils.logger import logger
 
 
@@ -32,7 +32,7 @@ class GherkinPlugin(FeatureParser):
             parsed_feature.source = feature_file
             return parsed_feature
 
-    def get_feature_files(self, ) -> [str]:
+    def get_features(self, ) -> list[TestFeature]:
         parsed_features = []
         folder_path = Path(self.feature_directory)
         for file in folder_path.glob("*.feature"):

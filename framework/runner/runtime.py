@@ -8,7 +8,7 @@ from types import NoneType
 
 import yaml
 
-from framework.core.interfaces.test_interfaces import StepRunner, FeatureParser
+from framework.core.interfaces.test_interfaces import StepRunner, FeatureParser, DependencyInjector, TestCatalogManager
 from framework.core.models.generic import Context
 from framework.core.models.karta_config import KartaConfig, default_karta_config
 from framework.core.models.test_catalog import TestFeature, FeatureResult, ScenarioResult, StepResult, TestStep, \
@@ -18,9 +18,12 @@ from framework.core.utils.logger import logger
 
 class KartaRuntime:
     config: KartaConfig = default_karta_config
-    plugins: dict[str, StepRunner | FeatureParser] = {}
+    plugins: dict[str, StepRunner | FeatureParser | DependencyInjector | TestCatalogManager] = {}
+    dependency_injector: DependencyInjector = None
     step_runners: list[StepRunner] = []
+    feature_parsers: list[FeatureParser] = []
     parser_map: dict[str, FeatureParser] = {}
+    test_catalog_manager: TestCatalogManager = None
 
     def __init__(self, config: KartaConfig = default_karta_config):
         self.load_config(config)
@@ -34,21 +37,47 @@ class KartaRuntime:
             plugin = plugin_class(*plugin_config.init.args, **plugin_config.init.kwargs)
             self.plugins[plugin_name] = plugin
 
+        if self.config.dependency_injector:
+            plugin = self.plugins[self.config.dependency_injector]
+            if self.config.dependency_injector not in self.plugins.keys():
+                raise Exception("Unknown dependency injector plugin name " + self.config.dependency_injector)
+            if not isinstance(plugin, DependencyInjector):
+                raise Exception("Passed plugin is not a DependencyInjector" + str(plugin.__class__))
+            self.dependency_injector = plugin
+
         self.step_runners.clear()
+        if not self.config.step_runners or (len(self.config.step_runners) == 0):
+            raise Exception("Need at least one step runner configured")
         for step_runner_name in self.config.step_runners:
             plugin = self.plugins[step_runner_name]
             if not isinstance(plugin, StepRunner):
-                raise Exception("Passed plugin is not a step runner" + str(plugin.__class__))
-            self.step_runners.append(plugin)
+                raise Exception("Passed plugin is not a StepRunner" + str(plugin.__class__))
+            if plugin not in self.step_runners:
+                self.step_runners.append(plugin)
 
         self.parser_map.clear()
+        if not self.config.parser_map or (len(self.config.parser_map) == 0):
+            raise Exception("Need at least one feature parser configured")
         for extension, feature_parser_name in self.config.parser_map.items():
             if feature_parser_name not in self.plugins.keys():
                 raise Exception("Unknown feature source parser plugin name " + feature_parser_name)
             plugin = self.plugins[feature_parser_name]
             if not isinstance(plugin, FeatureParser):
-                raise Exception("Passed plugin is not a feature parser" + str(plugin.__class__))
-            self.parser_map[extension] = self.plugins[feature_parser_name]
+                raise Exception("Passed plugin is not a FeatureParser" + str(plugin.__class__))
+            if plugin not in self.feature_parsers:
+                self.feature_parsers.append(plugin)
+            self.parser_map[extension] = plugin
+
+        plugin = self.plugins[self.config.test_catalog_manager]
+        if not self.config.test_catalog_manager:
+            raise Exception("Need a test catalog manager configured")
+        if not isinstance(plugin, TestCatalogManager):
+            raise Exception("Passed plugin is not a TestCatalogManager" + str(plugin.__class__))
+        self.test_catalog_manager = plugin
+
+        # Add all features from feature parers into test catalog manager
+        for feature_parser in self.feature_parsers:
+            self.test_catalog_manager.add_features(feature_parser.get_features())
 
     def run_feature_file(self, feature_file, base_context=None):
         # Load the feature file to run
@@ -141,8 +170,42 @@ class KartaRuntime:
         feature_result.end_time = datetime.now()
         return feature_result
 
-    def filter_with_tags(self, features: str, tags: [str]):
-        raise NotImplementedError
+    def run_scenarios(self, scenarios: set[TestScenario], base_context=None) -> list[FeatureResult]:
+        if base_context is None:
+            base_context = Context()
+        feature_to_scenario_map: dict[TestFeature, set[TestScenario]] = {}
+        feature_results: list[FeatureResult] = []
+
+        for scenario in scenarios:
+            if not scenario.parent:
+                raise Exception("Scenario needs to have a parent feature")
+            feature = scenario.parent
+            if feature not in feature_to_scenario_map.keys():
+                feature_to_scenario_map[feature] = set()
+            if scenario not in feature_to_scenario_map[feature]:
+                feature_to_scenario_map[feature].add(scenario)
+
+        for feature in feature_to_scenario_map.keys():
+            feature_result = FeatureResult(name=feature.name)
+            feature_result.source = feature.source
+            feature_result.line_number = feature.line_number
+            feature_result.start_time = datetime.now()
+            logger.info('Running feature %s', str(feature.name))
+            for scenario in feature_to_scenario_map[feature]:
+                scenario_result = self.run_scenario(scenario, base_context, )
+                scenario_result._parent = feature_result
+                feature_result.add_scenario_result(scenario_result)
+            feature_result.end_time = datetime.now()
+            feature_results.append(feature_result)
+
+        return feature_results
+
+    def filter_with_tags(self, tags: set[str]) -> set[TestScenario]:
+        return self.test_catalog_manager.filter_with_tags(tags)
+
+    def run_tags(self, tags: set[str], base_context=None) -> list[FeatureResult]:
+        filtered_scenarios = self.filter_with_tags(tags)
+        return self.run_scenarios(filtered_scenarios, base_context=base_context)
 
 
 config_file_path = Path('karta_config.yaml')

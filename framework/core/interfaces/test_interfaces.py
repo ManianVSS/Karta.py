@@ -3,6 +3,12 @@ import abc
 from framework.core.models.test_catalog import TestStep, TestFeature, TestScenario
 
 
+class DependencyInjector(metaclass=abc.ABCMeta):
+    @abc.abstractmethod
+    def inject(self, *list_of_objects: list[object]) -> bool:
+        raise NotImplementedError
+
+
 class FeatureParser(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def parse_feature(self, feature_source: str) -> TestFeature:
@@ -13,7 +19,7 @@ class FeatureParser(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_feature_files(self, ) -> [str]:
+    def get_features(self, ) -> list[TestFeature]:
         raise NotImplementedError
 
 
@@ -33,13 +39,13 @@ class StepRunner(metaclass=abc.ABCMeta):
 
 class TestCatalogManager(metaclass=abc.ABCMeta):
     @abc.abstractmethod
-    def load_features(self, feature_directory: str, ) -> bool:
+    def add_features(self, features: list[TestFeature], ) -> bool:
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_all_features(self, feature_directory: str) -> [TestFeature]:
+    def add_scenarios(self, scenarios: set[TestScenario], ) -> bool:
         raise NotImplementedError
 
     @abc.abstractmethod
-    def filter_with_tags(self, features: str, tags: [str]) -> [TestScenario]:
+    def filter_with_tags(self, tags: set[str]) -> set[TestScenario]:
         raise NotImplementedError

@@ -4,8 +4,8 @@ from pathlib import Path
 
 import yaml
 
-from framework.core.interfaces.test_interfaces import FeatureParser, StepRunner
-from framework.core.models.test_catalog import TestFeature, TestStep
+from framework.core.interfaces.test_interfaces import FeatureParser, StepRunner, TestCatalogManager
+from framework.core.models.test_catalog import TestFeature, TestStep, TestScenario
 from framework.core.utils import importutils
 from framework.core.utils.logger import logger
 
@@ -33,8 +33,9 @@ When = step_def
 Then = step_def
 
 
-class Kriya(FeatureParser, StepRunner):
-    step_definition_mapping = {}
+class Kriya(FeatureParser, StepRunner, TestCatalogManager):
+    step_definition_mapping: dict[str, callable] = {}
+    scenario_map: dict[str, set[TestScenario]] = {}
 
     def __init__(self, feature_directory: str, step_def_package: str):
         self.feature_directory = feature_directory
@@ -61,7 +62,7 @@ class Kriya(FeatureParser, StepRunner):
             parsed_feature.source = feature_file
             return parsed_feature
 
-    def get_feature_files(self, ) -> [str]:
+    def get_features(self, ) -> list[TestFeature]:
         parsed_features = []
         folder_path = Path(self.feature_directory)
         for file in folder_path.glob("*.yaml"):
@@ -88,3 +89,32 @@ class Kriya(FeatureParser, StepRunner):
         else:
             message = "Step definition mapping for {} could not be found".format(step_to_call)
             return {}, False, message
+
+    def add_features(self, features: list[TestFeature], ) -> bool:
+        for feature in features:
+            for tag in feature.tags:
+                if tag not in self.scenario_map.keys():
+                    self.scenario_map[tag] = set()
+                for scenario in feature.scenarios:
+                    if scenario not in self.scenario_map[tag]:
+                        self.scenario_map[tag].add(scenario)
+
+            self.add_scenarios(feature.scenarios)
+        return True
+
+    def add_scenarios(self, scenarios: set[TestScenario], ) -> bool:
+        for scenario in scenarios:
+            for tag in scenario.tags:
+                if tag not in self.scenario_map.keys():
+                    self.scenario_map[tag] = set()
+                if scenario not in self.scenario_map[tag]:
+                    self.scenario_map[tag].add(scenario)
+        return True
+
+    def filter_with_tags(self, tags: set[str]) -> set[TestScenario]:
+        filtered_scenarios = set()
+        for tag in tags:
+            if tag in self.scenario_map.keys():
+                filtered_scenarios.update(self.scenario_map[tag])
+
+        return filtered_scenarios

@@ -1,20 +1,28 @@
+# Plugins for Karta
 plugins:
+  KartaDependencyInjector:
+    module_name: framework.plugins.dependency_injector
+    class_name: KartaDependencyInjector
+    init:
+      kwargs:
+        properties_folder: properties
+
   Kriya:
-    module_name: framework.core.plugins.kriya
+    module_name: framework.plugins.kriya
     class_name: Kriya
     init:
-      args: [ ]
       kwargs:
         step_def_package: step_definitions
         feature_directory: features
 
   Gherkin:
-    module_name: framework.core.plugins.gherkin
+    module_name: framework.plugins.gherkin
     class_name: GherkinPlugin
     init:
-      args: [ ]
       kwargs:
         feature_directory: features
+
+dependency_injector: KartaDependencyInjector
 
 step_runners:
   - Kriya
@@ -23,3 +31,5 @@ parser_map:
   .yml: Kriya
   .yaml: Kriya
   .feature: Gherkin
+
+test_catalog_manager: Kriya

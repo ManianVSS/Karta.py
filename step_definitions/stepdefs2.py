@@ -1,6 +1,6 @@
 import random
 
-from framework.core.plugins.kriya import step_def
+from framework.plugins.kriya import step_def
 from framework.core.utils.logger import logger
 
 

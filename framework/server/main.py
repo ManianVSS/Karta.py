@@ -4,7 +4,7 @@ from starlette.responses import FileResponse
 
 from framework.core.models.generic import Context
 from framework.core.models.test_catalog import TestFeature, TestStep
-from framework.core.runner.runtime import karta_runtime
+from framework.runner.runtime import karta_runtime
 
 app = FastAPI(
     title="Karta.py",
@@ -53,3 +53,9 @@ async def run_feature_api(request: Request):
 async def run_step_api(step: TestStep):
     context = Context()
     return karta_runtime.run_step(step, context)
+
+
+@app.post("/run_tags")
+async def run_step_api(tags: set[str]):
+    context = Context()
+    return karta_runtime.run_tags(tags, context)

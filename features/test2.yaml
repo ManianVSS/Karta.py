@@ -1,7 +1,9 @@
 ---
 name: Test feature 2
+tags: [ 'my_tag2', 'my_tag3' ,'my_tag4', ]
 scenarios:
   - name: Test scenario 1
+    tags: [ 'my_scenario_tag2', 'my_scenario_tag3', 'my_scenario_tag4', ]
     steps:
       - name: my sample step definition3
         data:
