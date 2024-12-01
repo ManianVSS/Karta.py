@@ -56,6 +56,5 @@ async def run_step_api(step: TestStep):
 
 
 @app.post("/run_tags")
-async def run_step_api(tags: set[str]):
-    context = Context()
-    return karta_runtime.run_tags(tags, context)
+async def run_tags(tags: set[str]):
+    return karta_runtime.run_tags(tags)

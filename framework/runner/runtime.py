@@ -30,6 +30,13 @@ class KartaRuntime:
 
     def load_config(self, config: KartaConfig = default_karta_config):
         self.config = config
+        self.load_plugins()
+        self.load_dependency_injector()
+        self.load_step_runners()
+        self.load_feature_parsers()
+        self.load_test_catalog_manager()
+
+    def load_plugins(self):
         self.plugins.clear()
         for plugin_name, plugin_config in self.config.plugins.items():
             plugin_module = import_module(plugin_config.module_name)
@@ -37,6 +44,7 @@ class KartaRuntime:
             plugin = plugin_class(*plugin_config.init.args, **plugin_config.init.kwargs)
             self.plugins[plugin_name] = plugin
 
+    def load_dependency_injector(self):
         if self.config.dependency_injector:
             plugin = self.plugins[self.config.dependency_injector]
             if self.config.dependency_injector not in self.plugins.keys():
@@ -45,6 +53,7 @@ class KartaRuntime:
                 raise Exception("Passed plugin is not a DependencyInjector" + str(plugin.__class__))
             self.dependency_injector = plugin
 
+    def load_step_runners(self):
         self.step_runners.clear()
         if not self.config.step_runners or (len(self.config.step_runners) == 0):
             raise Exception("Need at least one step runner configured")
@@ -55,6 +64,7 @@ class KartaRuntime:
             if plugin not in self.step_runners:
                 self.step_runners.append(plugin)
 
+    def load_feature_parsers(self):
         self.parser_map.clear()
         if not self.config.parser_map or (len(self.config.parser_map) == 0):
             raise Exception("Need at least one feature parser configured")
@@ -68,6 +78,7 @@ class KartaRuntime:
                 self.feature_parsers.append(plugin)
             self.parser_map[extension] = plugin
 
+    def load_test_catalog_manager(self):
         plugin = self.plugins[self.config.test_catalog_manager]
         if not self.config.test_catalog_manager:
             raise Exception("Need a test catalog manager configured")
@@ -79,15 +90,18 @@ class KartaRuntime:
         for feature_parser in self.feature_parsers:
             self.test_catalog_manager.add_features(feature_parser.get_features())
 
-    def run_feature_file(self, feature_file, base_context=None):
-        # Load the feature file to run
-        if base_context is None:
-            base_context = Context()
+    def run_feature_file(self, feature_file):
         feature_file_extn = pathlib.Path(feature_file).suffix
         if feature_file_extn not in self.parser_map.keys():
             raise Exception("Unknown feature file type")
         feature = self.parser_map[feature_file_extn].parse_feature_file(feature_file)
-        return self.run_feature(feature, base_context=base_context)
+        return self.run_feature(feature, )
+
+    def run_feature_files(self, feature_files: list[str]):
+        feature_results = {}
+        for feature_file in feature_files:
+            feature_results[feature_file] = self.run_feature_file(feature_file, )
+        return feature_results
 
     def find_step_runner_for_step(self, name: str) -> StepRunner | None:
         for step_runner in self.step_runners:
@@ -130,14 +144,12 @@ class KartaRuntime:
         step_result.end_time = datetime.now()
         return step_result
 
-    def run_scenario(self, scenario: TestScenario, base_context: Context, ):
-        if base_context is None:
-            base_context = Context()
+    def run_scenario(self, scenario: TestScenario, ):
         scenario_result = ScenarioResult(name=scenario.name, )
         scenario_result.source = scenario.source
         scenario_result.line_number = scenario.line_number
         scenario_result.start_time = datetime.now()
-        context = Context(**base_context)
+        context = Context()
         logger.info('Running scenario %s', str(scenario.name))
         for step in itertools.chain(scenario.parent.setup_steps, scenario.steps):
             try:
@@ -155,24 +167,20 @@ class KartaRuntime:
         scenario_result.end_time = datetime.now()
         return scenario_result
 
-    def run_feature(self, feature: TestFeature, base_context=None):
-        if base_context is None:
-            base_context = Context()
+    def run_feature(self, feature: TestFeature, ):
         feature_result = FeatureResult(name=feature.name)
         feature_result.source = feature.source
         feature_result.line_number = feature.line_number
         feature_result.start_time = datetime.now()
         logger.info('Running feature %s', str(feature.name))
         for scenario in feature.scenarios:
-            scenario_result = self.run_scenario(scenario, base_context, )
+            scenario_result = self.run_scenario(scenario, )
             scenario_result._parent = feature_result
             feature_result.add_scenario_result(scenario_result)
         feature_result.end_time = datetime.now()
         return feature_result
 
-    def run_scenarios(self, scenarios: set[TestScenario], base_context=None) -> list[FeatureResult]:
-        if base_context is None:
-            base_context = Context()
+    def run_scenarios(self, scenarios: set[TestScenario]) -> list[FeatureResult]:
         feature_to_scenario_map: dict[TestFeature, set[TestScenario]] = {}
         feature_results: list[FeatureResult] = []
 
@@ -192,7 +200,7 @@ class KartaRuntime:
             feature_result.start_time = datetime.now()
             logger.info('Running feature %s', str(feature.name))
             for scenario in feature_to_scenario_map[feature]:
-                scenario_result = self.run_scenario(scenario, base_context, )
+                scenario_result = self.run_scenario(scenario, )
                 scenario_result._parent = feature_result
                 feature_result.add_scenario_result(scenario_result)
             feature_result.end_time = datetime.now()
@@ -203,9 +211,9 @@ class KartaRuntime:
     def filter_with_tags(self, tags: set[str]) -> set[TestScenario]:
         return self.test_catalog_manager.filter_with_tags(tags)
 
-    def run_tags(self, tags: set[str], base_context=None) -> list[FeatureResult]:
+    def run_tags(self, tags: set[str]) -> list[FeatureResult]:
         filtered_scenarios = self.filter_with_tags(tags)
-        return self.run_scenarios(filtered_scenarios, base_context=base_context)
+        return self.run_scenarios(filtered_scenarios)
 
 
 config_file_path = Path('karta_config.yaml')

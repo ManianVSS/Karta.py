@@ -33,5 +33,6 @@ class KartaDependencyInjector(DependencyInjector):
 
     def inject(self, *list_of_objects: list[object]) -> bool:
         for obj in list_of_objects:
-            obj.properties = self.properties
+            obj.dependency_injector = self
+            obj.test_properties = self.properties
         return True
