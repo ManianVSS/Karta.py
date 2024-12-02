@@ -17,8 +17,9 @@ class PluginConfig(BaseModel):
 
 
 class KartaConfig(BaseModel):
+    property_files: Optional[list[str]] = Field(default_factory=get_empty_list)
+    dependency_injector: Optional[PluginConfig] = None
     plugins: Optional[dict[str, PluginConfig]] = Field(default_factory=get_empty_dict)
-    dependency_injector: Optional[str] = None
     step_runners: Optional[list[str]] = Field(default_factory=get_empty_list)
     parser_map: Optional[dict] = Field(default_factory=get_empty_dict)
     test_catalog_manager: Optional[str] = None
@@ -36,17 +37,12 @@ def read_config_from_file(config_file: str):
 
 
 default_karta_config = KartaConfig(
+    property_files=['properties'],
+    dependency_injector=PluginConfig(
+        module_name='framework.plugins.dependency_injector',
+        class_name='KartaDependencyInjector',
+    ),
     plugins={
-        'KartaDependencyInjector': PluginConfig(
-            module_name='framework.plugins.dependency_injector',
-            class_name='KartaDependencyInjector',
-            init=FunctionArgs(
-                args=[],
-                kwargs={
-                    'properties_folder': 'properties',
-                }
-            )
-        ),
         'Kriya': PluginConfig(
             module_name='framework.plugins.kriya',
             class_name='Kriya',
@@ -69,7 +65,6 @@ default_karta_config = KartaConfig(
             )
         ),
     },
-    dependency_injector='KartaDependencyInjector',
     step_runners=['Kriya', ],
     parser_map={
         '.yml': 'Kriya',

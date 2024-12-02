@@ -1,3 +1,25 @@
+import re
+
+import yaml
+
+number_regex = r'^(([0-9]*)|(([0-9]*)\.([0-9]*)))$'
+array_regex = r'^\[([^,],?)*\]$'
+
+
+def is_builtin_class_instance(obj):
+    return obj.__class__.__module__ in ['__builtin__', 'builtins']
+
+
+def parse_value(value: str) -> object:
+    check_value = value.strip()
+    if ((check_value.lower() == 'true') or (check_value.lower() == 'false')
+            or re.search(number_regex, check_value) or
+            re.search(array_regex, check_value)):
+        return yaml.safe_load(value)
+    else:
+        return value
+
+
 def get_empty_tuple():
     return tuple()
 
@@ -27,6 +49,18 @@ def merge_dicts(*dicts_to_merge):
     for dict_to_merge in dicts_to_merge:
         merged_dict.update(dict_to_merge)
     return merged_dict
+
+
+def deep_update(dest: dict, source: dict, update_existing_only=False):
+    for k in source.keys():
+        if k in dest.keys():
+            if isinstance(dest[k], dict) and isinstance(source[k], dict):
+                deep_update(dest[k], source[k], update_existing_only)
+            else:
+                dest[k] = source[k]
+        else:
+            if not update_existing_only:
+                dest[k] = source[k]
 
 
 def in_range(value, min_value, max_value, include_min=True, include_max=True):

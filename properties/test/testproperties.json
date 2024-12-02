@@ -1,0 +1,23 @@
+{
+  "p1": 1,
+  "p2": 2.0,
+  "p3": "Third property",
+  "p4": [
+    "Forth",
+    "property",
+    "is",
+    "array"
+  ],
+  "p5": {
+    "index": 5,
+    "type": "object",
+    "name": [
+      "This",
+      "is",
+      "the",
+      "fifth",
+      "property"
+    ]
+  },
+  "p6": true
+}

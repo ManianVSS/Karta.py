@@ -1,0 +1,9 @@
+# Run information
+runName: my_dev_run_01
+productVersion: v1.0.0-0001
+
+#Test bed settings
+environment:
+  ip: 10.XXX.XXX.XXX
+  name: my_system_under_test
+

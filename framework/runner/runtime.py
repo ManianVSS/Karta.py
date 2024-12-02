@@ -1,6 +1,7 @@
 import itertools
 import pathlib
 import traceback
+from copy import deepcopy
 from datetime import datetime
 from importlib import import_module
 from pathlib import Path
@@ -8,18 +9,32 @@ from types import NoneType
 
 import yaml
 
-from framework.core.interfaces.test_interfaces import StepRunner, FeatureParser, DependencyInjector, TestCatalogManager
+from framework.core.interfaces.lifecycle import DependencyInjector
+from framework.core.interfaces.test_interfaces import StepRunner, FeatureParser, TestCatalogManager
 from framework.core.models.generic import Context
 from framework.core.models.karta_config import KartaConfig, default_karta_config
 from framework.core.models.test_catalog import TestFeature, FeatureResult, ScenarioResult, StepResult, TestStep, \
     TestScenario
+from framework.core.utils.datautils import deep_update
 from framework.core.utils.logger import logger
+from framework.core.utils.properties import read_properties
+from framework.plugins.dependency_injector import KartaDependencyInjector
+
+
+def get_plugin_from_config(plugin_config):
+    plugin_module = import_module(plugin_config.module_name)
+    plugin_class = getattr(plugin_module, plugin_config.class_name)
+    args = plugin_config.init.args if (plugin_config.init and plugin_config.init.args) else []
+    kwargs = plugin_config.init.kwargs if (plugin_config.init and plugin_config.init.kwargs) else {}
+    plugin = plugin_class(*args, **kwargs)
+    return plugin
 
 
 class KartaRuntime:
     config: KartaConfig = default_karta_config
-    plugins: dict[str, StepRunner | FeatureParser | DependencyInjector | TestCatalogManager] = {}
+    properties: dict[str, object] = {}
     dependency_injector: DependencyInjector = None
+    plugins: dict[str, StepRunner | FeatureParser | DependencyInjector | TestCatalogManager] = {}
     step_runners: list[StepRunner] = []
     feature_parsers: list[FeatureParser] = []
     parser_map: dict[str, FeatureParser] = {}
@@ -30,28 +45,37 @@ class KartaRuntime:
 
     def load_config(self, config: KartaConfig = default_karta_config):
         self.config = config
-        self.load_plugins()
+        self.load_properties()
         self.load_dependency_injector()
+        self.load_plugins()
         self.load_step_runners()
         self.load_feature_parsers()
         self.load_test_catalog_manager()
 
-    def load_plugins(self):
-        self.plugins.clear()
-        for plugin_name, plugin_config in self.config.plugins.items():
-            plugin_module = import_module(plugin_config.module_name)
-            plugin_class = getattr(plugin_module, plugin_config.class_name)
-            plugin = plugin_class(*plugin_config.init.args, **plugin_config.init.kwargs)
-            self.plugins[plugin_name] = plugin
+    def load_properties(self):
+        self.properties = {}
+        if self.config.property_files:
+            for property_file_name in self.config.property_files:
+                properties_read = read_properties(property_file_name)
+                deep_update(self.properties, properties_read)
 
     def load_dependency_injector(self):
         if self.config.dependency_injector:
-            plugin = self.plugins[self.config.dependency_injector]
-            if self.config.dependency_injector not in self.plugins.keys():
-                raise Exception("Unknown dependency injector plugin name " + self.config.dependency_injector)
+            plugin = get_plugin_from_config(self.config.dependency_injector)
             if not isinstance(plugin, DependencyInjector):
                 raise Exception("Passed plugin is not a DependencyInjector" + str(plugin.__class__))
             self.dependency_injector = plugin
+        else:
+            self.dependency_injector = KartaDependencyInjector()
+        self.dependency_injector.register("karta_runtime", self)
+        self.dependency_injector.register("properties", self.properties)
+
+    def load_plugins(self):
+        self.plugins.clear()
+        for plugin_name, plugin_config in self.config.plugins.items():
+            plugin = get_plugin_from_config(plugin_config)
+            self.dependency_injector.inject(plugin)
+            self.plugins[plugin_name] = plugin
 
     def load_step_runners(self):
         self.step_runners.clear()
@@ -150,6 +174,7 @@ class KartaRuntime:
         scenario_result.line_number = scenario.line_number
         scenario_result.start_time = datetime.now()
         context = Context()
+        context.properties = deepcopy(self.properties)
         logger.info('Running scenario %s', str(scenario.name))
         for step in itertools.chain(scenario.parent.setup_steps, scenario.steps):
             try:

@@ -8,6 +8,7 @@ from framework.core.interfaces.test_interfaces import FeatureParser, StepRunner,
 from framework.core.models.test_catalog import TestFeature, TestStep, TestScenario
 from framework.core.utils import importutils
 from framework.core.utils.logger import logger
+from framework.plugins.dependency_injector import Inject
 
 
 def step_def(step_identifier):
@@ -34,26 +35,28 @@ Then = step_def
 
 
 class Kriya(FeatureParser, StepRunner, TestCatalogManager):
+    dependency_injector = Inject()
+
     step_definition_mapping: dict[str, callable] = {}
     scenario_map: dict[str, set[TestScenario]] = {}
 
     def __init__(self, feature_directory: str, step_def_package: str):
         self.feature_directory = feature_directory
-        # Search for python modules in step definitions folder
-        step_definition_module_python_files = importutils.get_python_files(step_def_package)
+        self.step_def_package = step_def_package
 
+    def __post_inject__(self):
+        # Search for python modules in step definitions folder
+        step_definition_module_python_files = importutils.get_python_files(self.step_def_package)
         # Scan for each python module if it has step definitions, add them to step definition mapping
         for py_file in step_definition_module_python_files:
             module_name = Path(py_file).stem  # os.path.split(py_file)[-1].strip(".py")
-            importutils.import_module_from_file(module_name, py_file)
+            imported_module = importutils.import_module_from_file(module_name, py_file)
+            self.dependency_injector.inject(imported_module)
 
     def parse_feature(self, feature_source: str):
-        try:
-            feature_raw_object = yaml.safe_load(feature_source)
-            feature_object = TestFeature.model_validate(feature_raw_object)
-            return feature_object
-        except yaml.YAMLError as exc:
-            logger.info(exc)
+        feature_raw_object = yaml.safe_load(feature_source)
+        feature_object = TestFeature.model_validate(feature_raw_object)
+        return feature_object
 
     def parse_feature_file(self, feature_file: str) -> TestFeature:
         with open(feature_file, "r") as stream:
@@ -65,7 +68,7 @@ class Kriya(FeatureParser, StepRunner, TestCatalogManager):
     def get_features(self, ) -> list[TestFeature]:
         parsed_features = []
         folder_path = Path(self.feature_directory)
-        for file in folder_path.glob("*.yaml"):
+        for file in folder_path.glob("**/*.yaml"):
             parsed_feature = self.parse_feature_file(str(file))
             parsed_features.append(parsed_feature)
         return parsed_features

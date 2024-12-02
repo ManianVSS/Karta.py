@@ -3,12 +3,6 @@ import abc
 from framework.core.models.test_catalog import TestStep, TestFeature, TestScenario
 
 
-class DependencyInjector(metaclass=abc.ABCMeta):
-    @abc.abstractmethod
-    def inject(self, *list_of_objects: list[object]) -> bool:
-        raise NotImplementedError
-
-
 class FeatureParser(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def parse_feature(self, feature_source: str) -> TestFeature:

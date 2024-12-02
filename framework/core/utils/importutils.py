@@ -6,7 +6,7 @@ from pathlib import Path
 
 def get_python_files(src='step_definitions'):
     folder_path = Path(src)
-    py_files = [str(file) for file in folder_path.glob("*.py")]
+    py_files = [str(file) for file in folder_path.glob("**/*.py")]
     return py_files
 
 

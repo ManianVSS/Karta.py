@@ -1,12 +1,14 @@
+#Properties config
+property_files:
+  - properties
+
+#Dependency Injector
+dependency_injector:
+  module_name: framework.plugins.dependency_injector
+  class_name: KartaDependencyInjector
+
 # Plugins for Karta
 plugins:
-  KartaDependencyInjector:
-    module_name: framework.plugins.dependency_injector
-    class_name: KartaDependencyInjector
-    init:
-      kwargs:
-        properties_folder: properties
-
   Kriya:
     module_name: framework.plugins.kriya
     class_name: Kriya
@@ -22,14 +24,15 @@ plugins:
       kwargs:
         feature_directory: features
 
-dependency_injector: KartaDependencyInjector
-
+#Step Runners plugin name
 step_runners:
   - Kriya
 
+#Feature Parsers plugin names mapped to file extensions
 parser_map:
   .yml: Kriya
   .yaml: Kriya
   .feature: Gherkin
 
+#Test Catalog Manager plugin name
 test_catalog_manager: Kriya
