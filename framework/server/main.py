@@ -1,9 +1,12 @@
+import traceback
+from datetime import datetime
+
 from fastapi import FastAPI
 from fastapi import Request
 from starlette.responses import FileResponse
 
 from framework.core.models.generic import Context
-from framework.core.models.test_catalog import TestFeature, TestStep
+from framework.core.models.test_catalog import TestFeature, TestStep, StepResult
 from framework.runner.runtime import karta_runtime
 
 app = FastAPI(
@@ -52,7 +55,21 @@ async def run_feature_api(request: Request):
 @app.post("/run_step")
 async def run_step_api(step: TestStep):
     context = Context()
-    return karta_runtime.run_step(step, context)
+    start_time = datetime.now()
+    try:
+        return karta_runtime.run_step(step, context)
+    except Exception as e:
+        step_result = StepResult(name=step.name)
+        step_result.start_time = start_time
+        step_result.successful = False
+        step_result.error = str(e) + "\n" + traceback.format_exc()
+        step_result.end_time = datetime.now()
+        return step_result
+
+
+@app.get("/get_catalog")
+async def get_catalog():
+    return karta_runtime.test_catalog_manager.get_catalog()
 
 
 @app.post("/run_tags")

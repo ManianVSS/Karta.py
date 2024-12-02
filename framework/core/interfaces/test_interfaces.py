@@ -33,6 +33,10 @@ class StepRunner(metaclass=abc.ABCMeta):
 
 class TestCatalogManager(metaclass=abc.ABCMeta):
     @abc.abstractmethod
+    def get_catalog(self):
+        raise NotImplementedError
+
+    @abc.abstractmethod
     def add_features(self, features: list[TestFeature], ) -> bool:
         raise NotImplementedError
 

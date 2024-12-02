@@ -93,6 +93,12 @@ class Kriya(FeatureParser, StepRunner, TestCatalogManager):
             message = "Step definition mapping for {} could not be found".format(step_to_call)
             return {}, False, message
 
+    def get_catalog(self):
+        catalog = {}
+        for tag, scenarios in self.scenario_map.items():
+            catalog[tag] = [scenario.parent.name + "." + scenario.name for scenario in scenarios]
+        return catalog
+
     def add_features(self, features: list[TestFeature], ) -> bool:
         for feature in features:
             for tag in feature.tags:
