@@ -6,7 +6,8 @@ from fastapi import Request
 from starlette.responses import FileResponse
 
 from framework.core.models.generic import Context
-from framework.core.models.test_catalog import TestFeature, TestStep, StepResult
+from framework.core.models.test_catalog import TestFeature, TestStep
+from framework.core.models.test_execution import StepResult
 from framework.runner.runtime import karta_runtime
 
 app = FastAPI(

@@ -23,6 +23,8 @@ class KartaConfig(BaseModel):
     step_runners: Optional[list[str]] = Field(default_factory=get_empty_list)
     parser_map: Optional[dict] = Field(default_factory=get_empty_dict)
     test_catalog_manager: Optional[str] = None
+    test_lifecycle_hooks: Optional[list[str]] = Field(default_factory=get_empty_list)
+    test_event_listeners: Optional[list[str]] = Field(default_factory=get_empty_list)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -64,6 +66,20 @@ default_karta_config = KartaConfig(
                 }
             )
         ),
+        'LoggingTestLifecycleHook': PluginConfig(
+            module_name='framework.plugins.listeners',
+            class_name='LoggingTestLifecycleHook',
+        ),
+        'JSONEventDumper': PluginConfig(
+            module_name='framework.plugins.listeners',
+            class_name='DumpToJSONEventListener',
+            init=FunctionArgs(
+                args=[],
+                kwargs={
+                    'json_file_name': 'results/events.json',
+                }
+            )
+        ),
     },
     step_runners=['Kriya', ],
     parser_map={
@@ -72,4 +88,6 @@ default_karta_config = KartaConfig(
         '.feature': 'Gherkin',
     },
     test_catalog_manager='Kriya',
+    test_lifecycle_hooks=['LoggingTestLifecycleHook', ],
+    test_event_listeners=['JSONEventDumper', ],
 )

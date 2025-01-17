@@ -28,6 +28,10 @@ def get_empty_list():
     return list()
 
 
+def get_empty_set():
+    return set()
+
+
 def get_empty_dict():
     return dict()
 

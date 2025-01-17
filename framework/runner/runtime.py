@@ -9,12 +9,12 @@ from types import NoneType
 
 import yaml
 
-from framework.core.interfaces.lifecycle import DependencyInjector
+from framework.core.interfaces.lifecycle import DependencyInjector, TestEventListener, TestLifecycleHook
 from framework.core.interfaces.test_interfaces import StepRunner, FeatureParser, TestCatalogManager
 from framework.core.models.generic import Context
 from framework.core.models.karta_config import KartaConfig, default_karta_config
-from framework.core.models.test_catalog import TestFeature, FeatureResult, ScenarioResult, StepResult, TestStep, \
-    TestScenario
+from framework.core.models.test_catalog import TestFeature, TestStep, TestScenario
+from framework.core.models.test_execution import StepResult, ScenarioResult, FeatureResult
 from framework.core.utils.datautils import deep_update
 from framework.core.utils.logger import logger
 from framework.core.utils.properties import read_properties
@@ -39,6 +39,8 @@ class KartaRuntime:
     feature_parsers: list[FeatureParser] = []
     parser_map: dict[str, FeatureParser] = {}
     test_catalog_manager: TestCatalogManager = None
+    test_lifecycle_hooks: list[TestLifecycleHook] = []
+    test_event_listeners: list[TestEventListener] = []
 
     def __init__(self, config: KartaConfig = default_karta_config):
         self.load_config(config)
@@ -51,6 +53,8 @@ class KartaRuntime:
         self.load_step_runners()
         self.load_feature_parsers()
         self.load_test_catalog_manager()
+        self.load_test_lifecycle_hooks()
+        self.load_test_event_listeners()
 
     def load_properties(self):
         self.properties = {}
@@ -113,6 +117,24 @@ class KartaRuntime:
         # Add all features from feature parers into test catalog manager
         for feature_parser in self.feature_parsers:
             self.test_catalog_manager.add_features(feature_parser.get_features())
+
+    def load_test_lifecycle_hooks(self):
+        self.test_lifecycle_hooks.clear()
+        for test_lifecycle_hook_name in self.config.test_lifecycle_hooks:
+            plugin = self.plugins[test_lifecycle_hook_name]
+            if not isinstance(plugin, TestLifecycleHook):
+                raise Exception("Passed plugin is not a TestLifecycleHook" + str(plugin.__class__))
+            if plugin not in self.test_lifecycle_hooks:
+                self.test_lifecycle_hooks.append(plugin)
+
+    def load_test_event_listeners(self):
+        self.test_event_listeners.clear()
+        for test_event_listener_name in self.config.test_event_listeners:
+            plugin = self.plugins[test_event_listener_name]
+            if not isinstance(plugin, TestEventListener):
+                raise Exception("Passed plugin is not a TestEventListener" + str(plugin.__class__))
+            if plugin not in self.test_event_listeners:
+                self.test_event_listeners.append(plugin)
 
     def run_feature_file(self, feature_file):
         feature_file_extn = pathlib.Path(feature_file).suffix

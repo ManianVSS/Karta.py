@@ -1,4 +1,3 @@
-from types import ModuleType
 from typing import Optional
 
 from framework.core.interfaces.lifecycle import DependencyInjector

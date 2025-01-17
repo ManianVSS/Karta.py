@@ -13,35 +13,78 @@ class DependencyInjector(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
 
-class EventListener(metaclass=abc.ABCMeta):
+class TestLifecycleHook(metaclass=abc.ABCMeta):
+    """
+        TestLifecycleHooks are called synchronously in the different phases of test lifecycle
+    """
+
     @abc.abstractmethod
-    def run_started(self, event_context: Context):
+    def run_start(self, context: dict):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def feature_started(self, event_context: Context):
+    def feature_start(self, context: dict):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def scenario_started(self, event_context: Context):
+    def scenario_start(self, context: dict):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def step_started(self, event_context: Context):
+    def step_start(self, context: dict):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def step_completed(self, event_context: Context):
+    def step_complete(self, context: dict):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def scenario_completed(self, event_context: Context):
+    def scenario_complete(self, context: dict):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def feature_completed(self, event_context: Context):
+    def feature_complete(self, context: dict):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def run_completed(self, event_context: Context):
+    def run_complete(self, context: dict):
+        raise NotImplementedError
+
+
+class TestEventListener(metaclass=abc.ABCMeta):
+    """
+        TestEventListeners are notified of test events asynchronously after occurrence.
+        This can be used to create report generators.
+    """
+
+    @abc.abstractmethod
+    def run_started(self, context: dict):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def feature_started(self, context: dict):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def scenario_started(self, context: dict):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def step_started(self, context: dict):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def step_completed(self, context: dict):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def scenario_completed(self, context: dict):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def feature_completed(self, context: dict):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def run_completed(self, context: dict):
         raise NotImplementedError

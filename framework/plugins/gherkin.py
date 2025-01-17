@@ -1,10 +1,7 @@
 from pathlib import Path
 
-import yaml
-
 from framework.core.interfaces.test_interfaces import FeatureParser
 from framework.core.models.test_catalog import TestFeature
-from framework.core.utils.logger import logger
 from framework.parsers.GkerkinParser.GherkinParser import GherkinParser
 
 

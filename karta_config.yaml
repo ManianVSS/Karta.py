@@ -24,6 +24,17 @@ plugins:
       kwargs:
         feature_directory: features
 
+  LoggingTestLifecycleHook:
+    module_name: framework.plugins.listeners
+    class_name: LoggingTestLifecycleHook
+
+  JSONEventDumper:
+    module_name: framework.plugins.listeners
+    class_name: DumpToJSONEventListener
+    init:
+      kwargs:
+        json_file_name: results/events.json
+
 #Step Runners plugin name
 step_runners:
   - Kriya
@@ -36,3 +47,9 @@ parser_map:
 
 #Test Catalog Manager plugin name
 test_catalog_manager: Kriya
+
+test_lifecycle_hooks:
+  - LoggingTestLifecycleHook
+
+test_event_listeners:
+  - JSONEventDumper
