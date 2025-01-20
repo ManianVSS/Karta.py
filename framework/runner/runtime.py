@@ -195,22 +195,28 @@ class KartaRuntime:
         if step_runner is None:
             raise Exception("Unimplemented step: " + step.name)
         self.event_processor.step_start(run, feature, scenario, step)
+        context.step_data = step.data if step.data else {}
         step_return = step_runner.run_step(step, context)
 
+        step_result_data = {}
         if not isinstance(step_return, NoneType):
             if isinstance(step_return, dict):
-                step_result.results = step_return
+                step_result_data = step_return
             elif isinstance(step_return, tuple):
                 if len(step_return) > 0:
-                    step_result.results = step_return[0]
+                    step_result_data = step_return[0]
                     if len(step_return) > 1:
                         step_result.successful = step_return[1]
                         if len(step_return) > 2:
                             step_result.error = step_return[2]
             else:
                 raise Exception("Unprocessable result type: ", type(step_result))
+        if step_result_data and len(step_result_data) > 0:
+            context.data.update(step_result_data)
 
+        step_result.results = deepcopy(context.data)
         step_result.end_time = datetime.now()
+
         self.event_processor.step_complete(run, feature, scenario, step, step_result)
         return step_result
 
@@ -220,6 +226,7 @@ class KartaRuntime:
         scenario_result.line_number = scenario.line_number
         scenario_result.start_time = datetime.now()
         context = Context()
+        context.data = {}
         context.properties = deepcopy(self.properties)
         self.event_processor.scenario_start(run, feature, scenario)
         # logger.info('Running scenario %s', str(scenario.name))
@@ -227,8 +234,6 @@ class KartaRuntime:
             try:
                 step_result = self.run_step(run, feature, scenario, step, context)
                 step_result._parent = scenario_result
-                if step_result.results and len(step_result.results) > 0:
-                    context.update(step_result.results)
                 scenario_result.add_step_result(step_result)
                 if not step_result.is_successful():
                     break

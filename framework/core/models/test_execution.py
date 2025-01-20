@@ -7,7 +7,13 @@ from framework.core.models.test_catalog import TestNode, TestScenario
 from framework.core.utils.datautils import get_empty_list
 
 
-class StepResult(TestNode):
+class ResultNode(BaseModel):
+    name: Optional[str] = None
+    source: Optional[str] = None
+    line_number: Optional[int] = 0
+
+
+class StepResult(ResultNode):
     start_time: Optional[datetime] = None
     end_time: Optional[datetime] = None
     successful: bool = True
@@ -33,7 +39,7 @@ class StepResult(TestNode):
             self.results.update(another.results)
 
 
-class ScenarioResult(TestNode):
+class ScenarioResult(ResultNode):
     start_time: Optional[datetime] = None
     end_time: Optional[datetime] = None
     successful: bool = True
@@ -55,7 +61,7 @@ class ScenarioResult(TestNode):
         self.successful = not self.error and self.successful and step_result.successful
 
 
-class FeatureResult(TestNode):
+class FeatureResult(ResultNode):
     start_time: Optional[datetime] = None
     end_time: Optional[datetime] = None
     successful: bool = True

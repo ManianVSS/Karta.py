@@ -82,8 +82,6 @@ class Kriya(FeatureParser, StepRunner, TestCatalogManager):
     def run_step(self, test_step: TestStep, context: dict):
         step_to_call = test_step.name.strip()
         if step_to_call in self.step_definition_mapping.keys():
-            context.step_name = test_step.name
-            context.step_data = deepcopy(test_step.data)
             try:
                 return self.step_definition_mapping[step_to_call](context=context)
                 # return step_result, True, None

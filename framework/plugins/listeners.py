@@ -48,6 +48,7 @@ class DumpToJSONEventListener(TestEventListener):
         if isinstance(event, RunStartEvent):
             self.event_data.append(
                 {
+                    'type': event.__class__.__name__,
                     'run': event.run.name,
                     'tags': event.run.tags,
                 }
@@ -55,6 +56,7 @@ class DumpToJSONEventListener(TestEventListener):
         elif isinstance(event, FeatureStartEvent):
             self.event_data.append(
                 {
+                    'type': event.__class__.__name__,
                     'run': event.run.name,
                     'feature': event.feature.name,
                 }
@@ -62,6 +64,7 @@ class DumpToJSONEventListener(TestEventListener):
         elif isinstance(event, ScenarioStartEvent):
             self.event_data.append(
                 {
+                    'type': event.__class__.__name__,
                     'run': event.run.name,
                     'feature': event.feature.name,
                     'sceanario': event.scenario.name,
@@ -70,6 +73,7 @@ class DumpToJSONEventListener(TestEventListener):
         elif isinstance(event, StepStartEvent):
             self.event_data.append(
                 {
+                    'type': event.__class__.__name__,
                     'run': event.run.name,
                     'feature': event.feature.name,
                     'sceanario': event.scenario.name,
@@ -79,6 +83,7 @@ class DumpToJSONEventListener(TestEventListener):
         elif isinstance(event, StepCompleteEvent):
             self.event_data.append(
                 {
+                    'type': event.__class__.__name__,
                     'run': event.run.name,
                     'feature': event.feature.name,
                     'sceanario': event.scenario.name,
@@ -89,6 +94,7 @@ class DumpToJSONEventListener(TestEventListener):
         elif isinstance(event, ScenarioCompleteEvent):
             self.event_data.append(
                 {
+                    'type': event.__class__.__name__,
                     'run': event.run.name,
                     'feature': event.feature.name,
                     'sceanario': event.scenario.name,
@@ -98,6 +104,7 @@ class DumpToJSONEventListener(TestEventListener):
         elif isinstance(event, FeatureCompleteEvent):
             self.event_data.append(
                 {
+                    'type': event.__class__.__name__,
                     'run': event.run.name,
                     'feature': event.feature.name,
                     'result': event.result.model_dump(),
@@ -106,6 +113,7 @@ class DumpToJSONEventListener(TestEventListener):
         elif isinstance(event, RunCompleteEvent):
             self.event_data.append(
                 {
+                    'type': event.__class__.__name__,
                     'run': event.run.name,
                     'result': event.result.model_dump(),
                 }

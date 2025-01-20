@@ -56,6 +56,7 @@ async def run_feature_api(request: Request):
 @app.post("/run_step")
 async def run_step_api(step: TestStep):
     context = Context()
+    context.data = {}
     start_time = datetime.now()
     try:
         return karta_runtime.run_step(Run(), None, None, step, context)
