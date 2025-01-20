@@ -7,7 +7,7 @@ from starlette.responses import FileResponse
 
 from framework.core.models.generic import Context
 from framework.core.models.test_catalog import TestFeature, TestStep
-from framework.core.models.test_execution import StepResult
+from framework.core.models.test_execution import StepResult, Run
 from framework.runner.runtime import karta_runtime
 
 app = FastAPI(
@@ -38,7 +38,7 @@ async def get_steps():
 
 @app.post("/run_feature")
 async def run_feature_api(feature: TestFeature):
-    return karta_runtime.run_feature(feature)
+    return karta_runtime.run_feature(Run(), feature)
 
 
 @app.post("/run_gherkin_feature")
@@ -50,7 +50,7 @@ async def run_feature_api(request: Request):
     feature_source = (await request.body()).decode("utf-8")
     feature = karta_runtime.plugins['Gherkin'].parse_feature(feature_source)
     feature.source = request.query_params["source"] if ("source" in request.query_params.keys()) else request.url.path
-    return karta_runtime.run_feature(feature)
+    return karta_runtime.run_feature(Run(),feature)
 
 
 @app.post("/run_step")
@@ -58,7 +58,7 @@ async def run_step_api(step: TestStep):
     context = Context()
     start_time = datetime.now()
     try:
-        return karta_runtime.run_step(step, context)
+        return karta_runtime.run_step(Run(), None, None, step, context)
     except Exception as e:
         step_result = StepResult(name=step.name)
         step_result.start_time = start_time

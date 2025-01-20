@@ -1,6 +1,10 @@
 import json
 
-from framework.core.interfaces.lifecycle import TestEventListener, TestLifecycleHook
+from pydantic.v1.json import pydantic_encoder
+
+from framework.core.interfaces.lifecycle import TestEventListener, TestLifecycleHook, Event, RunStartEvent, \
+    FeatureStartEvent, ScenarioStartEvent, StepStartEvent, StepCompleteEvent, ScenarioCompleteEvent, \
+    FeatureCompleteEvent, RunCompleteEvent
 from framework.core.models.generic import Context
 from framework.core.utils.logger import logger
 
@@ -35,36 +39,80 @@ class LoggingTestLifecycleHook(TestLifecycleHook):
 
 
 class DumpToJSONEventListener(TestEventListener):
-    def __init__(self, json_file_name='results/events.json'):
+    def __init__(self, json_file_name='logs/events.json'):
         super().__init__()
         self.json_file_name = json_file_name
         self.event_data = []
 
-    def run_started(self, event_context: Context):
-        self.event_data.clear()
-        self.event_data.append(event_context)
-
-    def feature_started(self, event_context: Context):
-        self.event_data.append(event_context)
-
-    def scenario_started(self, event_context: Context):
-        self.event_data.append(event_context)
-
-    def step_started(self, event_context: Context):
-        self.event_data.append(event_context)
-
-    def step_completed(self, event_context: Context):
-        self.event_data.append(event_context)
-
-    def scenario_completed(self, event_context: Context):
-        self.event_data.append(event_context)
-
-    def feature_completed(self, event_context: Context):
-        self.event_data.append(event_context)
-
-    def run_completed(self, event_context: Context):
-        self.event_data.append(event_context)
-        with open(self.json_file_name, 'w', encoding='utf-8') as json_file:
-            # noinspection PyTypeChecker
-            json.dump(self.event_data, json_file, ensure_ascii=False, indent=4)
-        self.event_data.clear()
+    def process_event(self, event: Event):
+        if isinstance(event, RunStartEvent):
+            self.event_data.append(
+                {
+                    'run': event.run.name,
+                    'tags': event.run.tags,
+                }
+            )
+        elif isinstance(event, FeatureStartEvent):
+            self.event_data.append(
+                {
+                    'run': event.run.name,
+                    'feature': event.feature.name,
+                }
+            )
+        elif isinstance(event, ScenarioStartEvent):
+            self.event_data.append(
+                {
+                    'run': event.run.name,
+                    'feature': event.feature.name,
+                    'sceanario': event.scenario.name,
+                }
+            )
+        elif isinstance(event, StepStartEvent):
+            self.event_data.append(
+                {
+                    'run': event.run.name,
+                    'feature': event.feature.name,
+                    'sceanario': event.scenario.name,
+                    'step': event.step.name,
+                }
+            )
+        elif isinstance(event, StepCompleteEvent):
+            self.event_data.append(
+                {
+                    'run': event.run.name,
+                    'feature': event.feature.name,
+                    'sceanario': event.scenario.name,
+                    'step': event.step.name,
+                    'result': event.result.model_dump(),
+                }
+            )
+        elif isinstance(event, ScenarioCompleteEvent):
+            self.event_data.append(
+                {
+                    'run': event.run.name,
+                    'feature': event.feature.name,
+                    'sceanario': event.scenario.name,
+                    'result': event.result.model_dump(),
+                }
+            )
+        elif isinstance(event, FeatureCompleteEvent):
+            self.event_data.append(
+                {
+                    'run': event.run.name,
+                    'feature': event.feature.name,
+                    'result': event.result.model_dump(),
+                }
+            )
+        elif isinstance(event, RunCompleteEvent):
+            self.event_data.append(
+                {
+                    'run': event.run.name,
+                    'result': event.result.model_dump(),
+                }
+            )
+            with open(self.json_file_name, 'w', encoding='utf-8') as json_file:
+                # noinspection PyTypeChecker
+                json_file.write(json.dumps(self.event_data, default=pydantic_encoder))
+            self.event_data.clear()
+        else:
+            self.event_data.append(event)

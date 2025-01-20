@@ -76,7 +76,7 @@ default_karta_config = KartaConfig(
             init=FunctionArgs(
                 args=[],
                 kwargs={
-                    'json_file_name': 'results/events.json',
+                    'json_file_name': 'logs/events.json',
                 }
             )
         ),

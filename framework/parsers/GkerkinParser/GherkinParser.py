@@ -303,7 +303,8 @@ class GherkinParser(object):
                 for j in range(len(table[i])):
                     table_data[i - 1][table[0][j]] = table[i][j]
 
-        p[0] = TestStep(conjunction=step_conjunction, name=name, text=doc_string, data={'table_data': table_data}, )
+        p[0] = TestStep(conjunction=step_conjunction, name=name, text=doc_string,
+                        data={'table_data': table_data} if (table_data and len(table_data) > 0) else {}, )
         p[0].line_number = p.slice[1].lineno
 
     def p_error(self, p):

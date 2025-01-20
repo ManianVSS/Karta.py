@@ -33,7 +33,7 @@ plugins:
     class_name: DumpToJSONEventListener
     init:
       kwargs:
-        json_file_name: results/events.json
+        json_file_name: logs/events.json
 
 #Step Runners plugin name
 step_runners:

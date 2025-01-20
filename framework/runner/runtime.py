@@ -14,11 +14,12 @@ from framework.core.interfaces.test_interfaces import StepRunner, FeatureParser,
 from framework.core.models.generic import Context
 from framework.core.models.karta_config import KartaConfig, default_karta_config
 from framework.core.models.test_catalog import TestFeature, TestStep, TestScenario
-from framework.core.models.test_execution import StepResult, ScenarioResult, FeatureResult
+from framework.core.models.test_execution import StepResult, ScenarioResult, FeatureResult, Run, RunResult
 from framework.core.utils.datautils import deep_update
 from framework.core.utils.logger import logger
 from framework.core.utils.properties import read_properties
 from framework.plugins.dependency_injector import KartaDependencyInjector
+from framework.runner.events import EventProcessor
 
 
 def get_plugin_from_config(plugin_config):
@@ -39,11 +40,22 @@ class KartaRuntime:
     feature_parsers: list[FeatureParser] = []
     parser_map: dict[str, FeatureParser] = {}
     test_catalog_manager: TestCatalogManager = None
-    test_lifecycle_hooks: list[TestLifecycleHook] = []
-    test_event_listeners: list[TestEventListener] = []
+    event_processor: EventProcessor = None
 
     def __init__(self, config: KartaConfig = default_karta_config):
         self.load_config(config)
+
+    def __enter__(self):
+        self.event_processor.start()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.event_processor.stop()
+
+    def initialize(self):
+        self.__enter__()
+
+    def stop(self):
+        self.__exit__(None, None, None)
 
     def load_config(self, config: KartaConfig = default_karta_config):
         self.config = config
@@ -53,8 +65,7 @@ class KartaRuntime:
         self.load_step_runners()
         self.load_feature_parsers()
         self.load_test_catalog_manager()
-        self.load_test_lifecycle_hooks()
-        self.load_test_event_listeners()
+        self.load_event_processor()
 
     def load_properties(self):
         self.properties = {}
@@ -118,36 +129,48 @@ class KartaRuntime:
         for feature_parser in self.feature_parsers:
             self.test_catalog_manager.add_features(feature_parser.get_features())
 
-    def load_test_lifecycle_hooks(self):
-        self.test_lifecycle_hooks.clear()
+    def load_event_processor(self):
+        if not self.event_processor:
+            self.event_processor = EventProcessor()
+        self.event_processor.test_lifecycle_hooks.clear()
         for test_lifecycle_hook_name in self.config.test_lifecycle_hooks:
             plugin = self.plugins[test_lifecycle_hook_name]
             if not isinstance(plugin, TestLifecycleHook):
                 raise Exception("Passed plugin is not a TestLifecycleHook" + str(plugin.__class__))
-            if plugin not in self.test_lifecycle_hooks:
-                self.test_lifecycle_hooks.append(plugin)
+            if plugin not in self.event_processor.test_lifecycle_hooks:
+                self.event_processor.test_lifecycle_hooks.append(plugin)
 
-    def load_test_event_listeners(self):
-        self.test_event_listeners.clear()
+        self.event_processor.test_event_listeners.clear()
         for test_event_listener_name in self.config.test_event_listeners:
             plugin = self.plugins[test_event_listener_name]
             if not isinstance(plugin, TestEventListener):
                 raise Exception("Passed plugin is not a TestEventListener" + str(plugin.__class__))
-            if plugin not in self.test_event_listeners:
-                self.test_event_listeners.append(plugin)
+            if plugin not in self.event_processor.test_event_listeners:
+                self.event_processor.test_event_listeners.append(plugin)
 
-    def run_feature_file(self, feature_file):
-        feature_file_extn = pathlib.Path(feature_file).suffix
-        if feature_file_extn not in self.parser_map.keys():
-            raise Exception("Unknown feature file type")
-        feature = self.parser_map[feature_file_extn].parse_feature_file(feature_file)
-        return self.run_feature(feature, )
-
-    def run_feature_files(self, feature_files: list[str]):
+    def run_feature_files(self, feature_files: list[str], run_name: str = None,
+                          run_description: str = None) -> RunResult:
+        if not run_name:
+            run_name = "Run-" + str(datetime.now())
+        if not run_description:
+            run_description = run_name
         feature_results = {}
+        run = Run(name=run_name, description=run_description)
+        run_result = RunResult()
+        run_result.start_time = datetime.now()
+        self.event_processor.run_start(run)
+
         for feature_file in feature_files:
-            feature_results[feature_file] = self.run_feature_file(feature_file, )
-        return feature_results
+            feature_file_extn = pathlib.Path(feature_file).suffix
+            if feature_file_extn not in self.parser_map.keys():
+                raise Exception("Unknown feature file type")
+            feature = self.parser_map[feature_file_extn].parse_feature_file(feature_file)
+            run.scenarios.update(feature.scenarios)
+            feature_result = self.run_feature(run, feature)
+            run_result.add_feature_result(feature_result)
+
+        self.event_processor.run_complete(run, run_result)
+        return run_result
 
     def find_step_runner_for_step(self, name: str) -> StepRunner | None:
         for step_runner in self.step_runners:
@@ -161,8 +184,8 @@ class KartaRuntime:
             steps.extend(step_runner.get_steps())
         return steps
 
-    def run_step(self, step: TestStep, context: Context):
-        logger.info('Running step %s', str(step.name))
+    def run_step(self, run: Run, feature: TestFeature, scenario: TestScenario, step: TestStep, context: Context):
+        # logger.info('Running step %s', str(step.name))
         step_result = StepResult(name=step.name, )
         step_result.source = step.source
         step_result.line_number = step.line_number
@@ -171,7 +194,7 @@ class KartaRuntime:
         step_runner = self.find_step_runner_for_step(step.name.strip())
         if step_runner is None:
             raise Exception("Unimplemented step: " + step.name)
-
+        self.event_processor.step_start(run, feature, scenario, step)
         step_return = step_runner.run_step(step, context)
 
         if not isinstance(step_return, NoneType):
@@ -188,19 +211,21 @@ class KartaRuntime:
                 raise Exception("Unprocessable result type: ", type(step_result))
 
         step_result.end_time = datetime.now()
+        self.event_processor.step_complete(run, feature, scenario, step, step_result)
         return step_result
 
-    def run_scenario(self, scenario: TestScenario, ):
+    def run_scenario(self, run: Run, feature: TestFeature, scenario: TestScenario, ):
         scenario_result = ScenarioResult(name=scenario.name, )
         scenario_result.source = scenario.source
         scenario_result.line_number = scenario.line_number
         scenario_result.start_time = datetime.now()
         context = Context()
         context.properties = deepcopy(self.properties)
-        logger.info('Running scenario %s', str(scenario.name))
+        self.event_processor.scenario_start(run, feature, scenario)
+        # logger.info('Running scenario %s', str(scenario.name))
         for step in itertools.chain(scenario.parent.setup_steps, scenario.steps):
             try:
-                step_result = self.run_step(step, context)
+                step_result = self.run_step(run, feature, scenario, step, context)
                 step_result._parent = scenario_result
                 if step_result.results and len(step_result.results) > 0:
                     context.update(step_result.results)
@@ -212,24 +237,28 @@ class KartaRuntime:
                 scenario_result.error = str(e) + "\n" + traceback.format_exc()
                 break
         scenario_result.end_time = datetime.now()
+        self.event_processor.scenario_complete(run, feature, scenario, scenario_result)
         return scenario_result
 
-    def run_feature(self, feature: TestFeature, ):
+    def run_feature(self, run: Run, feature: TestFeature, ):
         feature_result = FeatureResult(name=feature.name)
         feature_result.source = feature.source
         feature_result.line_number = feature.line_number
         feature_result.start_time = datetime.now()
-        logger.info('Running feature %s', str(feature.name))
+        # logger.info('Running feature %s', str(feature.name))
+        self.event_processor.feature_start(run, feature)
         for scenario in feature.scenarios:
-            scenario_result = self.run_scenario(scenario, )
+            scenario_result = self.run_scenario(run, feature, scenario, )
             scenario_result._parent = feature_result
             feature_result.add_scenario_result(scenario_result)
         feature_result.end_time = datetime.now()
+        self.event_processor.feature_complete(run, feature, feature_result)
         return feature_result
 
-    def run_scenarios(self, scenarios: set[TestScenario]) -> list[FeatureResult]:
+    def run_scenarios(self, run: Run, scenarios: set[TestScenario]) -> RunResult:
         feature_to_scenario_map: dict[TestFeature, set[TestScenario]] = {}
-        feature_results: list[FeatureResult] = []
+        run_result = RunResult()
+        run_result.start_time = datetime.now()
 
         for scenario in scenarios:
             if not scenario.parent:
@@ -245,22 +274,33 @@ class KartaRuntime:
             feature_result.source = feature.source
             feature_result.line_number = feature.line_number
             feature_result.start_time = datetime.now()
-            logger.info('Running feature %s', str(feature.name))
+            # logger.info('Running feature %s', str(feature.name))
+            self.event_processor.feature_start(run, feature)
             for scenario in feature_to_scenario_map[feature]:
-                scenario_result = self.run_scenario(scenario, )
+                scenario_result = self.run_scenario(run, feature, scenario, )
                 scenario_result._parent = feature_result
                 feature_result.add_scenario_result(scenario_result)
             feature_result.end_time = datetime.now()
-            feature_results.append(feature_result)
+            run_result.add_feature_result(feature_result)
+            self.event_processor.feature_complete(run, feature, feature_result)
 
-        return feature_results
+        run_result.end_time = datetime.now()
+        return run_result
 
     def filter_with_tags(self, tags: set[str]) -> set[TestScenario]:
         return self.test_catalog_manager.filter_with_tags(tags)
 
-    def run_tags(self, tags: set[str]) -> list[FeatureResult]:
+    def run_tags(self, tags: set[str], run_name: str = None, run_description: str = None) -> RunResult:
+        if not run_name:
+            run_name = "Run-" + str(datetime.now())
+        if not run_description:
+            run_description = run_name
         filtered_scenarios = self.filter_with_tags(tags)
-        return self.run_scenarios(filtered_scenarios)
+        run = Run(name=run_name, description=run_description, tags=tags, scenarios=filtered_scenarios)
+        self.event_processor.run_start(run)
+        run_result = self.run_scenarios(run, filtered_scenarios)
+        self.event_processor.run_complete(run, run_result)
+        return run_result
 
 
 config_file_path = Path('karta_config.yaml')
@@ -273,3 +313,4 @@ if config_file_path.exists():
         karta_config = KartaConfig.model_validate(karta_config_raw)
 
 karta_runtime = KartaRuntime(config=karta_config)
+karta_runtime.initialize()
