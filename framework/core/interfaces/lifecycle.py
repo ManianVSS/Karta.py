@@ -57,11 +57,17 @@ class TestLifecycleHook(metaclass=abc.ABCMeta):
 
 
 class Event(BaseModel):
-    time: Optional[datetime]
+    time: Optional[datetime] = None
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
 
 class RunStartEvent(Event):
-    run: Optional[Run]
+    run: Optional[Run] = None
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
 
 class FeatureStartEvent(Event):
