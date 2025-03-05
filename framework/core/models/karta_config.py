@@ -56,16 +56,6 @@ default_karta_config = KartaConfig(
                 }
             )
         ),
-        'Gherkin': PluginConfig(
-            module_name='framework.plugins.gherkin',
-            class_name='GherkinPlugin',
-            init=FunctionArgs(
-                args=[],
-                kwargs={
-                    'feature_directory': 'features',
-                }
-            )
-        ),
         'KriyaGherkin': PluginConfig(
             module_name='framework.plugins.kriya',
             class_name='KriyaGherkinPlugin',
@@ -95,7 +85,7 @@ default_karta_config = KartaConfig(
     parser_map={
         '.yml': 'Kriya',
         '.yaml': 'Kriya',
-        '.feature': 'Gherkin',
+        '.feature': 'KriyaGherkin',
         '.kriya': 'KriyaGherkin',
     },
     test_catalog_manager='Kriya',

@@ -17,13 +17,6 @@ plugins:
         step_def_package: step_definitions
         feature_directory: features
 
-  Gherkin:
-    module_name: framework.plugins.gherkin
-    class_name: GherkinPlugin
-    init:
-      kwargs:
-        feature_directory: features
-
   KriyaGherkin:
     module_name: framework.plugins.kriya
     class_name: KriyaGherkinPlugin
@@ -50,7 +43,7 @@ step_runners:
 parser_map:
   .yml: Kriya
   .yaml: Kriya
-  .feature: Gherkin
+  .feature: KriyaGherkin
   .kriya: KriyaGherkin
 
 #Test Catalog Manager plugin name

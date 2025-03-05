@@ -21,7 +21,11 @@ class KriyaLexer(object):
         'SCENARIO',
         'STEP',
         'DOC_STRING',
+        'TABLE',
+        'SCENARIO_OUTLINE',
+        'EXAMPLES',
         'TAG',
+
         'ASSERTION',
         'CONDITION',
         'LOOP',
@@ -89,6 +93,19 @@ class KriyaLexer(object):
             t.value = t.value.removeprefix('Example:')
         return t
 
+    @TOKEN(r'(\s+)?Scenario[ ]Outline:([ \t]+)?[^\n]+')
+    def t_SCENARIO_OUTLINE(self, t):
+        # t.lexer.lineno += t.value.count('\n')
+        t.value = t.value.strip()
+        t.value = t.value.removeprefix('Scenario Outline:')
+        return t
+
+    @TOKEN(r'(\s+)?Examples:')
+    def t_EXAMPLES(self, t):
+        # t.lexer.lineno += t.value.count('\n')
+        t.value = t.value.strip()
+        return t
+
     @TOKEN(r'(\s+)?(Given | When | Then | And | But)([ \t]+)?[^\n]+')
     def t_STEP(self, t):
         # t.lexer.lineno += t.value.count('\n')
@@ -128,6 +145,33 @@ class KriyaLexer(object):
         for i in range(len(doc_string_lines)):
             doc_string_lines[i] = doc_string_lines[i].lstrip()
         t.value = '\n'.join(doc_string_lines)
+        return t
+
+    def unescape(self, string):
+        escape_map = {
+            "\\n": "\n",
+            "\\r": "\r",
+            "\\b": "\b",
+            "\\t": "\t",
+            "\\|": "|",
+            "\\\"": "\"",
+            "\\\'": "\'",
+        }
+        string = str(string).strip()
+        for unescape_key in escape_map.keys():
+            string = string.replace(unescape_key, escape_map[unescape_key])
+        return string
+
+    @TOKEN(r'(((\s+)?\|.*\|(\s+)?)\n?)+')
+    def t_TABLE(self, t):
+        t.lexer.lineno += t.value.count('\n')
+        table = str(t.value).strip()
+        table_lines = str(table).splitlines()
+        t.value = []
+        for table_line in table_lines:
+            columns = re.findall(r'(?<=\|)(?:\\\||\\n|\\t|[\w\s])*?(?=\|)', table_line.strip())
+            t.value.append([self.unescape(column) for column in columns if column != '|'])
+
         return t
 
     # string - escaped chars and all but Unicode control characters
@@ -266,6 +310,7 @@ class KriyaParser(object):
     def p_scenario(self, p):
         """
         scenario : tags SCENARIO steps
+                 | tags SCENARIO_OUTLINE steps EXAMPLES TABLE
         """
         tags = []
         if p.slice[1].type == 'tags':
@@ -312,8 +357,10 @@ class KriyaParser(object):
     def p_step(self, p):
         """
         step : STEP
+             | STEP TABLE
              | STEP json
              | STEP DOC_STRING
+             | STEP DOC_STRING TABLE
              | STEP DOC_STRING json
         """
         name = p[1]
@@ -326,9 +373,20 @@ class KriyaParser(object):
             if p.slice[2].type == 'DOC_STRING':
                 doc_string = p[2]
                 del p.slice[2]
-        step_data = {}
+
+        step_data={}
         if len(p) > 2:
-            if p.slice[2].type == 'json':
+            if p.slice[2].type == 'TABLE':
+                table = p[2]
+                del p.slice[2]
+                table_data = []
+                if table and len(table) > 1:
+                    for i in range(1, len(table)):
+                        table_data.append({})
+                        for j in range(len(table[i])):
+                            table_data[i - 1][table[0][j]] = table[i][j]
+                    step_data['table_data']=table_data
+            elif p.slice[2].type == 'json':
                 step_data = p[2]
                 del p.slice[2]
 
@@ -436,14 +494,9 @@ if __name__ == '__main__':
             Which could span multiple lines.
             ```
             And background step3
-            {
-                "key1": 1,
-                "key2": true,
-                "key3": "\"string value\"\n\t",
-                "key3": 10.3,
-                "key5": ["this", "is","an","array","with", 7, "values"],
-                "key6": {"type":"Object value"}
-            }
+            | f1\|  |  f2\n |  f3\t |
+            | v11   |  v12  |  v13  |
+            | v21   |  v 22  |  v23  |
             
         # Comment 1
       Example: My Scenario 1
@@ -458,6 +511,14 @@ if __name__ == '__main__':
         When scenario 1 step 2
           # sComment 1
         Then scenario 1 step 3
+        {
+                "key1": 1,
+                "key2": true,
+                "key3": "\"string value\"\n\t",
+                "key3": 10.3,
+                "key5": ["this", "is","an","array","with", 7, "values"],
+                "key6": {"type":"Object value"}
+        }
         
     # Comment 2
     @SMyTag1 @SMyTag2
@@ -469,6 +530,22 @@ if __name__ == '__main__':
         Then scenario 2 step 3
         And scenario 2 step 4
         But scenario 2 step 5
+        
+    # Comment 3
+    @SoMyTag1 @SoMyTag2
+     @SoMyTag3
+      Scenario Outline: My Scenario outline
+        Given <var1> scenario outline step 1
+        When scenario outline  step 2
+          # sComment 1
+        Then scenario outline  step 3
+        And <var2> scenario outline  step 4
+        But <var3> scenario outline  step 5
+        
+        Examples:
+        |var1   | var2  | var3       |
+        |value11 | value12 | value13 |
+        |value21 | value22 | value23 | 
     '''
 
     # # Give the lexer some input

@@ -1,3 +1,4 @@
+import itertools
 import traceback
 from copy import deepcopy
 from pathlib import Path
@@ -127,6 +128,7 @@ class Kriya(FeatureParser, StepRunner, TestCatalogManager):
 
         return filtered_scenarios
 
+
 class KriyaGherkinPlugin(FeatureParser):
     step_definition_mapping = {}
 
@@ -151,7 +153,7 @@ class KriyaGherkinPlugin(FeatureParser):
     def get_features(self, ) -> list[TestFeature]:
         parsed_features = []
         folder_path = Path(self.feature_directory)
-        for file in folder_path.glob("**/*.kriya"):
+        for file in itertools.chain(folder_path.glob("**/*.feature"), folder_path.glob("**/*.kriya")):
             parsed_feature = self.parse_feature_file(str(file))
             parsed_features.append(parsed_feature)
         return parsed_features
