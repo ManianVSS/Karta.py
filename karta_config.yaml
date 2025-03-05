@@ -24,6 +24,13 @@ plugins:
       kwargs:
         feature_directory: features
 
+  KriyaGherkin:
+    module_name: framework.plugins.kriya
+    class_name: KriyaGherkinPlugin
+    init:
+      kwargs:
+        feature_directory: features
+
   LoggingTestLifecycleHook:
     module_name: framework.plugins.listeners
     class_name: LoggingTestLifecycleHook
@@ -44,6 +51,7 @@ parser_map:
   .yml: Kriya
   .yaml: Kriya
   .feature: Gherkin
+  .kriya: KriyaGherkin
 
 #Test Catalog Manager plugin name
 test_catalog_manager: Kriya

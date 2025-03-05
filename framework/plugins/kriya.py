@@ -8,6 +8,7 @@ from framework.core.interfaces.test_interfaces import FeatureParser, StepRunner,
 from framework.core.models.test_catalog import TestFeature, TestStep, TestScenario
 from framework.core.utils import importutils
 from framework.core.utils.logger import logger
+from framework.parsers.KriyaParser.KriyaParser import KriyaParser
 from framework.plugins.dependency_injector import Inject
 
 
@@ -125,3 +126,32 @@ class Kriya(FeatureParser, StepRunner, TestCatalogManager):
                 filtered_scenarios.update(self.scenario_map[tag])
 
         return filtered_scenarios
+
+class KriyaGherkinPlugin(FeatureParser):
+    step_definition_mapping = {}
+
+    def __init__(self, feature_directory: str):
+        self.parser = KriyaParser()
+        self.feature_directory = feature_directory
+
+    def get_steps(self):
+        return self.step_definition_mapping
+
+    def parse_feature(self, feature_source: str) -> TestFeature:
+        feature_object = self.parser.parse(feature_source)
+        return feature_object
+
+    def parse_feature_file(self, feature_file: str) -> TestFeature:
+        with open(feature_file, "r") as stream:
+            parsed_feature = self.parse_feature(stream.read())
+            # str(Path(feature_file).resolve())
+            parsed_feature.source = feature_file
+            return parsed_feature
+
+    def get_features(self, ) -> list[TestFeature]:
+        parsed_features = []
+        folder_path = Path(self.feature_directory)
+        for file in folder_path.glob("**/*.kriya"):
+            parsed_feature = self.parse_feature_file(str(file))
+            parsed_features.append(parsed_feature)
+        return parsed_features

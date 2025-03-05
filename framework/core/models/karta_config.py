@@ -66,6 +66,16 @@ default_karta_config = KartaConfig(
                 }
             )
         ),
+        'KriyaGherkin': PluginConfig(
+            module_name='framework.plugins.kriya',
+            class_name='KriyaGherkinPlugin',
+            init=FunctionArgs(
+                args=[],
+                kwargs={
+                    'feature_directory': 'features',
+                }
+            )
+        ),
         'LoggingTestLifecycleHook': PluginConfig(
             module_name='framework.plugins.listeners',
             class_name='LoggingTestLifecycleHook',
@@ -86,6 +96,7 @@ default_karta_config = KartaConfig(
         '.yml': 'Kriya',
         '.yaml': 'Kriya',
         '.feature': 'Gherkin',
+        '.kriya': 'KriyaGherkin',
     },
     test_catalog_manager='Kriya',
     test_lifecycle_hooks=['LoggingTestLifecycleHook', ],
