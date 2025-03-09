@@ -19,6 +19,7 @@ class StepResult(ResultNode):
     successful: bool = True
     error: Optional[str] = None
     results: Optional[Dict] = None
+    step_results: Optional[list['StepResult']] = None
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -37,6 +38,15 @@ class StepResult(ResultNode):
         self.successful = not self.error and self.successful and another.successful
         if another.results:
             self.results.update(another.results)
+
+    def add_step_result(self, step_result: 'StepResult'):
+        if self.step_results is None:
+            self.step_results = []
+        self.step_results.append(step_result)
+        if not self.error:
+            self.error = step_result.error
+        self.successful = not self.error and self.successful and step_result.successful
+
 
 
 class ScenarioResult(ResultNode):

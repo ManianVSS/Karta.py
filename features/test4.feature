@@ -7,26 +7,10 @@
    This feature description describes the feature.
    It is a multi line feature description.
    """
-        
-   # Comment for Background ## Background:
-#  Background:
-#    Given my sample step definition4
-#    And my sample step definition3
-#
-#    And my sample step definition1
-#    | f1\| | f2\n | f3\t |
-#    | v11  | v12  | v13  |
-#    | v21  | v 22 | v23  |
-            
+
   # Comment 1
    Example: My Scenario 21
      Given my sample step definition1
-        """
-        Scenario 1 step1?
-        ===============
-        This is the text block for Scenario 1 step1.
-        Which could span multiple lines.
-        """
      When my sample step definition4
      # sComment 1
      Then my sample step definition3

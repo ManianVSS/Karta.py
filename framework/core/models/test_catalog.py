@@ -1,4 +1,5 @@
 import itertools
+from enum import Enum
 from typing import Optional, Dict
 
 from pydantic import BaseModel, Field
@@ -55,11 +56,19 @@ class TestNode(BaseModel):
         del self._line_number
 
 
+class StepType(Enum):
+    STEP = 0
+    CONDITION = 1
+    LOOP = 2
+
+
 class TestStep(TestNode):
     conjunction: Optional[str] = None
     # positional_parameters: Optional[list] = []
+    type: Optional[StepType] = StepType.STEP
     data: Optional[Dict] = None
-    text: Optional[str] = None
+    # text: Optional[str] = None
+    steps: Optional[list['TestStep']] = None
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

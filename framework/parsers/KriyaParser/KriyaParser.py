@@ -4,7 +4,7 @@ from copy import deepcopy
 from ply.lex import lex, TOKEN
 from ply.yacc import yacc
 
-from framework.core.models.test_catalog import TestFeature, TestScenario, TestStep
+from framework.core.models.test_catalog import TestFeature, TestScenario, TestStep, StepType
 from framework.core.utils.funcutils import wrap_function_before
 from framework.core.utils.logger import logger
 
@@ -31,31 +31,29 @@ class KriyaLexer(object):
     # All tokens must be named in advance.
     tokens = (
         'FEATURE',
-        # 'DESCRIPTION_LINE',
         'BACKGROUND',
         'SCENARIO',
         'STEP',
         'DOC_STRING',
-        'TABLE',
-        'SCENARIO_OUTLINE',
-        'EXAMPLES',
         'TAG',
 
         'ASSERTION',
         'CONDITION',
         'LOOP',
 
+        "LBRACE",
         "IDENTIFIER",
         "STRING",
-        "NUMBER",
-        "LBRACE",
-        "RBRACE",
-        "LBRACKET",
-        "RBRACKET",
-        "COMMA",
         "COLON",
+        "NUMBER",
         "BOOLEAN",
         "NULL",
+        "COMMA",
+        "LBRACKET",
+        "RBRACKET",
+        "RBRACE",
+
+        "STEPS",
     )
 
     # brackets regex
@@ -74,75 +72,62 @@ class KriyaLexer(object):
 
     # Ignored token with an action associated with it
     @TOKEN(r'[\s]+')
-    def t_ignore_newline(self, t):
+    def t_ignore_whitespaces(self, t):
         t.lexer.lineno += t.value.count('\n')
         pass
 
-    @TOKEN(r'(\s+)?\#[^\n]*')
+    @TOKEN(r'(\#[^\n]*) | (\/\*(.|\n|\s)+?(?=\*\/)\*\/)')
     def t_ignore_COMMENT(self, t):
-        # t.lexer.lineno += t.value.count('\n')
+        t.lexer.lineno += t.value.count('\n')
         t.value = t.value
 
-    @TOKEN(r'(\s+)?\@[^\n@]*')
+    @TOKEN(r'\@[^\n@]*')
     def t_TAG(self, t):
         # t.lexer.lineno += t.value.count('\n')
         t.value = t.value.strip().removeprefix('@').strip()
         return t
 
-    @TOKEN(r'(\s+)?Feature:([ \t]+)?[^\n]+')
+    @TOKEN(r'Feature:([ \t]+)?[^\n]+')
     def t_FEATURE(self, t):
         # t.lexer.lineno += t.value.count('\n')
-        t.value = t.value.strip().removeprefix('Feature:')
+        t.value = t.value.strip().removeprefix('Feature:').strip()
         return t
 
-    @TOKEN(r'(\s+)?Background:')
+    @TOKEN(r'Background:')
     def t_BACKGROUND(self, t):
         # t.lexer.lineno += t.value.count('\n')
         t.value = t.value.strip()
         return t
 
-    @TOKEN(r'(\s+)?(Scenario|Example):([ \t]+)?[^\n]+')
+    @TOKEN(r'(Scenario|Example):([ \t]+)?[^\n]+')
     def t_SCENARIO(self, t):
         # t.lexer.lineno += t.value.count('\n')
         t.value = t.value.strip()
         if t.value.startswith('Scenario:'):
-            t.value = t.value.removeprefix('Scenario:')
+            t.value = t.value.removeprefix('Scenario:').strip()
         if t.value.startswith('Example:'):
-            t.value = t.value.removeprefix('Example:')
+            t.value = t.value.removeprefix('Example:').strip()
         return t
 
-    @TOKEN(r'(\s+)?Scenario[ ]Outline:([ \t]+)?[^\n]+')
-    def t_SCENARIO_OUTLINE(self, t):
-        # t.lexer.lineno += t.value.count('\n')
-        t.value = t.value.strip()
-        t.value = t.value.removeprefix('Scenario Outline:')
-        return t
-
-    @TOKEN(r'(\s+)?Examples:')
-    def t_EXAMPLES(self, t):
-        # t.lexer.lineno += t.value.count('\n')
-        t.value = t.value.strip()
-        return t
-
-    @TOKEN(r'(\s+)?(Given | When | Then | And | But)([ \t]+)?[^\n]+')
+    @TOKEN(r'(Given | When | Then | And | But)([ \t]+)?[^\n]+')
     def t_STEP(self, t):
         # t.lexer.lineno += t.value.count('\n')
         t.value = t.value.strip()
         return t
 
-    @TOKEN(r'(\s+)?(Verify | Validate)([ \t]+)?[^\n]+')
+    @TOKEN(r'(Verify | Validate)([ \t]+)?[^\n]+')
     def t_ASSERTION(self, t):
         # t.lexer.lineno += t.value.count('\n')
         t.value = t.value.strip()
         return t
 
-    @TOKEN(r'(\s+)?(If | Condition:)([ \t]+)?[^\n]+')
+    @TOKEN(r'(If | Condition:)([ \t]+)?[^\n]+')
     def t_CONDITION(self, t):
         # t.lexer.lineno += t.value.count('\n')
         t.value = t.value.strip()
         return t
 
-    @TOKEN(r'(\s+)?(While | Until)([ \t]+)?[^\n]+')
+    @TOKEN(r'(While | Until)([ \t]+)?[^\n]+')
     def t_LOOP(self, t):
         # t.lexer.lineno += t.value.count('\n')
         t.value = t.value.strip()
@@ -163,18 +148,6 @@ class KriyaLexer(object):
         for i in range(len(doc_string_lines)):
             doc_string_lines[i] = doc_string_lines[i].lstrip()
         t.value = '\n'.join(doc_string_lines)
-        return t
-
-    @TOKEN(r'(((\s+)?\|.*\|(\s+)?)\n?)+')
-    def t_TABLE(self, t):
-        t.lexer.lineno += t.value.count('\n')
-        table = str(t.value).strip()
-        table_lines = str(table).splitlines()
-        t.value = []
-        for table_line in table_lines:
-            columns = re.findall(r'(?<=\|)(?:\\\||\\n|\\t|[\w\s])*?(?=\|)', table_line.strip())
-            t.value.append([unescape(column) for column in columns if column != '|'])
-
         return t
 
     # string - escaped chars and all but Unicode control characters
@@ -201,11 +174,11 @@ class KriyaLexer(object):
         t.value = None
         return t
 
-    # @TOKEN(r'(\s+)?[^\"\{\}\:\\[\],\n]+')
-    # def t_DESCRIPTION_LINE(self, t):
-    #     # t.lexer.lineno += t.value.count('\n')
-    #     t.value = t.value.strip()
-    #     return t
+    @TOKEN(r'Steps:([ \t]+)?[^\n]*')
+    def t_STEPS(self, t):
+        # t.lexer.lineno += t.value.count('\n')
+        t.value = t.value.strip().removeprefix('Steps:').strip()
+        return t
 
     # Error handler for illegal characters
     def t_error(self, t):
@@ -237,15 +210,17 @@ class KriyaLexer(object):
 class KriyaParser(object):
     tokens = KriyaLexer.tokens
     conjunctions = ['Given', 'When', 'Then', 'But', 'And']
+    condition_conjunctions = ['If', 'Condition']
+    loop_conjunctions = ['While', 'Until']
 
     # Write functions for each grammar rule which is
     # specified in the docstring.
     def p_feature(self, p):
         """
         feature : tags FEATURE scenarios
-                | tags FEATURE description scenarios
+                | tags FEATURE DOC_STRING scenarios
                 | tags FEATURE background scenarios
-                | tags FEATURE description background scenarios
+                | tags FEATURE DOC_STRING background scenarios
         """
         tags = []
         if p.slice[1].type == 'tags':
@@ -253,7 +228,7 @@ class KriyaParser(object):
             del p.slice[1]
 
         description = None
-        if p.slice[2].type == 'description':
+        if p.slice[2].type == 'DOC_STRING':
             description = p[2]
             del p.slice[2]
 
@@ -265,15 +240,6 @@ class KriyaParser(object):
         p[0] = TestFeature(name=p[1].strip(), description=description, setup_steps=background_steps, scenarios=p[2],
                            tags=tags, )
         p[0].line_number = p.slice[1].lineno
-
-    def p_description(self, p):
-        """
-        description : DOC_STRING
-                    | DOC_STRING description
-        """
-        p[0] = p[1]
-        if len(p) > 2:
-            p[0] = p[0] + '\n' + p[2]
 
     def p_empty(self, p):
         """
@@ -313,7 +279,6 @@ class KriyaParser(object):
     def p_scenario(self, p):
         """
         scenario : tags SCENARIO steps
-                 | tags SCENARIO_OUTLINE steps EXAMPLES TABLE
         """
         tags = []
         if p.slice[1].type == 'tags':
@@ -360,17 +325,30 @@ class KriyaParser(object):
     def p_step(self, p):
         """
         step : STEP
-             | STEP TABLE
-             | STEP object
-             | STEP DOC_STRING
-             | STEP DOC_STRING TABLE
-             | STEP DOC_STRING object
+             | STEP data_object
+             | CONDITION STEPS LBRACE steps RBRACE
+             | CONDITION data_object STEPS LBRACE steps RBRACE
+             | LOOP STEPS LBRACE steps RBRACE
+             | LOOP data_object STEPS LBRACE steps RBRACE
         """
         name = p[1]
         step_conjunction = None
-        for conjunction in self.conjunctions:
-            if name.startswith(conjunction):
-                step_conjunction, name = (conjunction, name.removeprefix(conjunction).strip())
+        step_type = None
+        if p.slice[1].type == 'STEP':
+            step_type = StepType.STEP
+            for conjunction in self.conjunctions:
+                if name.startswith(conjunction):
+                    step_conjunction, name = (conjunction, name.removeprefix(conjunction).strip())
+        elif p.slice[1].type == 'CONDITION':
+            step_type = StepType.CONDITION
+            for conjunction in self.condition_conjunctions:
+                if name.startswith(conjunction):
+                    step_conjunction, name = (conjunction, name.removeprefix(conjunction).strip())
+        elif p.slice[1].type == 'LOOP':
+            step_type = StepType.LOOP
+            for conjunction in self.loop_conjunctions:
+                if name.startswith(conjunction):
+                    step_conjunction, name = (conjunction, name.removeprefix(conjunction).strip())
         doc_string = None
         if len(p) > 2:
             if p.slice[2].type == 'DOC_STRING':
@@ -379,34 +357,22 @@ class KriyaParser(object):
 
         step_data = {}
         if len(p) > 2:
-            if p.slice[2].type == 'TABLE':
-                table = p[2]
-                del p.slice[2]
-                table_data = []
-                if table and len(table) > 1:
-                    for i in range(1, len(table)):
-                        table_data.append({})
-                        for j in range(len(table[i])):
-                            table_data[i - 1][table[0][j]] = table[i][j]
-                    step_data['table_data'] = table_data
-            elif p.slice[2].type == 'object':
+            if p.slice[2].type == 'data_object':
                 step_data = p[2]
                 del p.slice[2]
 
-        p[0] = TestStep(conjunction=step_conjunction, name=name, text=doc_string,
-                        data=step_data, )
+        nested_steps = []
+        if len(p) > 2:
+            if p.slice[2].type == 'STEPS':
+                nested_steps = p[4]
+
+        p[0] = TestStep(type=step_type, conjunction=step_conjunction, name=name, data=step_data,
+                        steps=nested_steps if len(nested_steps) > 0 else None)
         p[0].line_number = p.slice[1].lineno
 
-    def p_json(self, p):
+    def p_data_object(self, p):
         """
-        json : object
-             | array
-        """
-        p[0] = p[1]
-
-    def p_object(self, p):
-        """
-        object : LBRACE pairs RBRACE
+        data_object : LBRACE pairs RBRACE
         """
         p[0] = p[2]
 
@@ -462,7 +428,7 @@ class KriyaParser(object):
               | STRING
               | BOOLEAN
               | NULL
-              | object
+              | data_object
               | array
         """
         p[0] = p[1]
@@ -483,8 +449,12 @@ if __name__ == '__main__':
      # fComment 2
      @MyTag1 @MyTag2
      @MyTag3
-    Feature: My feature
-        # Comment before description
+     /*
+        Multi line
+        comment for the 
+        feature
+        */
+    Feature: My feature        
         """
         This feature description describes the feature.
         It is a multi line feature description.
@@ -494,27 +464,26 @@ if __name__ == '__main__':
         Background:
             Given background step1
             And background step2
-            ```
-            Background step2?
-            ===============
-            This is the text block for background step2.
-            Which could span multiple lines.
-            ```
             And background step3
-            | f1\|  |  f2\n |  f3\t |
-            | v11   |  v12  |  v13  |
-            | v21   |  v 22  |  v23  |
+            {
+                table_data: [
+                    {
+                        f1: "v11",
+                       "f2\n\t": "v12",
+                        f3: "v13"
+                    },
+                    {
+                        f1: "v21",
+                       "f2\n\t": "v22",
+                        f3: "v23"
+                    }
+                ]
+            }
             
         # Comment 1
       Example: My Scenario 1
         
         Given scenario 1 step 1
-        """
-        Scenario 1 step1?
-        ===============
-        This is the text block for Scenario 1 step1.
-        Which could span multiple lines.
-        """
         When scenario 1 step 2
           # sComment 1
         Then scenario 1 step 3
@@ -525,6 +494,15 @@ if __name__ == '__main__':
                 key4: 10.3,
                 key5: ["this", "is","an","array","with", 7, "values"],
                 key6: {type:"Object value"}
+        }
+        If my condition 1 is met
+        {
+               sample_value:1
+        }
+        Steps:
+        {
+            Given scenario 1 step 1
+            When scenario 1 step 2
         }
         
     # Comment 2
@@ -537,22 +515,15 @@ if __name__ == '__main__':
         Then scenario 2 step 3
         And scenario 2 step 4
         But scenario 2 step 5
-        
-    # Comment 3
-    @SoMyTag1 @SoMyTag2
-     @SoMyTag3
-      Scenario Outline: My Scenario outline
-        Given <var1> scenario outline step 1
-        When scenario outline  step 2
-          # sComment 1
-        Then scenario outline  step 3
-        And <var2> scenario outline  step 4
-        But <var3> scenario outline  step 5
-        
-        Examples:
-        |var1   | var2  | var3       |
-        |value11 | value12 | value13 |
-        |value21 | value22 | value23 | 
+        While my condition 1 is met
+        {
+               sample_value:5
+        }
+        Steps:
+        {
+             Given scenario 2 step 1
+             When scenario 2 step 2
+        }
     '''
 
     # # Give the lexer some input

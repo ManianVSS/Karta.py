@@ -22,19 +22,24 @@
      }
 
      And my sample step definition2
-       | f1\| | f2\n | f3\t |
-       | v11  | v12  | v13  |
-       | v21  | v 22 | v23  |
+     {
+        table_data: [
+            {
+                f1: "v11",
+               "f2\n\t": "v12",
+                f3: "v13"
+            },
+            {
+                f1: "v21",
+               "f2\n\t": "v22",
+                f3: "v23"
+            }
+        ]
+    }
             
    # Comment 1
    Example: My Scenario 1
      Given my sample step definition2
-        """
-        Scenario 1 step1?
-        ===============
-        This is the text block for Scenario 1 step1.
-        Which could span multiple lines.
-        """
      When my sample step definition3
      # sComment 1
      Then my sample step definition4

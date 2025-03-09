@@ -13,7 +13,7 @@ from framework.core.interfaces.lifecycle import DependencyInjector, TestEventLis
 from framework.core.interfaces.test_interfaces import StepRunner, FeatureParser, TestCatalogManager
 from framework.core.models.generic import Context
 from framework.core.models.karta_config import KartaConfig, default_karta_config
-from framework.core.models.test_catalog import TestFeature, TestStep, TestScenario
+from framework.core.models.test_catalog import TestFeature, TestStep, TestScenario, StepType
 from framework.core.models.test_execution import StepResult, ScenarioResult, FeatureResult, Run, RunResult
 from framework.core.utils.datautils import deep_update
 from framework.core.utils.logger import logger
@@ -184,7 +184,8 @@ class KartaRuntime:
             steps.extend(step_runner.get_steps())
         return steps
 
-    def run_step(self, run: Run, feature: TestFeature, scenario: TestScenario, step: TestStep, context: Context):
+    def run_step(self, run: Run, feature: TestFeature, scenario: TestScenario, step: TestStep,
+                 context: Context) -> StepResult | bool:
         # logger.info('Running step %s', str(step.name))
         step_result = StepResult(name=step.name, )
         step_result.source = step.source
@@ -196,27 +197,59 @@ class KartaRuntime:
             raise Exception("Unimplemented step: " + step.name)
         self.event_processor.step_start(run, feature, scenario, step)
         context.step_data = step.data if step.data else {}
+
         step_return = step_runner.run_step(step, context)
 
-        step_result_data = {}
-        if not isinstance(step_return, NoneType):
-            if isinstance(step_return, dict):
-                step_result_data = step_return
-            elif isinstance(step_return, tuple):
-                if len(step_return) > 0:
-                    step_result_data = step_return[0]
-                    if len(step_return) > 1:
-                        step_result.successful = step_return[1]
-                        if len(step_return) > 2:
-                            step_result.error = step_return[2]
-            else:
-                raise Exception("Unprocessable result type: ", type(step_result))
-        if step_result_data and len(step_result_data) > 0:
-            context.data.update(step_result_data)
+        if step.type== StepType.STEP:
+            step_result_data = {}
+            if not isinstance(step_return, NoneType):
+                if isinstance(step_return, dict):
+                    step_result_data = step_return
+                elif isinstance(step_return, tuple):
+                    if len(step_return) > 0:
+                        step_result_data = step_return[0]
+                        if len(step_return) > 1:
+                            step_result.successful = step_return[1]
+                            if len(step_return) > 2:
+                                step_result.error = step_return[2]
+                elif isinstance(step_return, bool):
+                    step_result.successful=step_return
+                else:
+                    raise Exception("Unprocessable result type: ", type(step_result))
+            if step_result_data and len(step_result_data) > 0:
+                context.data.update(step_result_data)
+            step_result.results = step_result_data
 
-        step_result.results = deepcopy(context.data)
+        if step.type == StepType.CONDITION:
+            if step_return:
+                for nested_step in step.steps:
+                    try:
+                        nested_step_result = self.run_step(run, feature, scenario, nested_step, context)
+                        nested_step_result._parent = step
+                        step_result.add_step_result(nested_step_result)
+                        if not nested_step_result.is_successful():
+                            break
+                    except Exception as e:
+                        step_result.successful = False
+                        step_result.error = str(e) + "\n" + traceback.format_exc()
+                        break
+
+        if step.type == StepType.LOOP:
+            while step_return:
+                for nested_step in step.steps:
+                    try:
+                        nested_step_result = self.run_step(run, feature, scenario, nested_step, context)
+                        nested_step_result._parent = step
+                        step_result.add_step_result(nested_step_result)
+                        if not nested_step_result.is_successful():
+                            break
+                    except Exception as e:
+                        step_result.successful = False
+                        step_result.error = str(e) + "\n" + traceback.format_exc()
+                        break
+                step_return = step_runner.run_step(step, context)
+
         step_result.end_time = datetime.now()
-
         self.event_processor.step_complete(run, feature, scenario, step, step_result)
         return step_result
 

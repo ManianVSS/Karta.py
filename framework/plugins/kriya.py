@@ -81,7 +81,7 @@ class Kriya(FeatureParser, StepRunner, TestCatalogManager):
     def is_step_available(self, name: str) -> bool:
         return name in self.step_definition_mapping.keys()
 
-    def run_step(self, test_step: TestStep, context: dict):
+    def run_step(self, test_step: TestStep, context: dict) -> tuple[dict, bool, str] | bool:
         step_to_call = test_step.name.strip()
         if step_to_call in self.step_definition_mapping.keys():
             try:
