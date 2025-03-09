@@ -9,14 +9,29 @@ from framework.core.utils.funcutils import wrap_function_before
 from framework.core.utils.logger import logger
 
 
-# --- Tokenizer
+def unescape(string):
+    escape_map = {
+        "\\n": "\n",
+        "\\r": "\r",
+        "\\b": "\b",
+        "\\t": "\t",
+        "\\|": "|",
+        "\\\"": "\"",
+        "\\\'": "\'",
+    }
+    string = str(string).strip()
+    for unescape_key in escape_map.keys():
+        string = string.replace(unescape_key, escape_map[unescape_key])
+    return string
 
+
+# --- Tokenizer
 # noinspection PyPep8Naming,PyMethodMayBeStatic,PyTypeChecker
 class KriyaLexer(object):
     # All tokens must be named in advance.
     tokens = (
         'FEATURE',
-        'DESCRIPTION_LINE',
+        # 'DESCRIPTION_LINE',
         'BACKGROUND',
         'SCENARIO',
         'STEP',
@@ -30,6 +45,7 @@ class KriyaLexer(object):
         'CONDITION',
         'LOOP',
 
+        "IDENTIFIER",
         "STRING",
         "NUMBER",
         "LBRACE",
@@ -39,7 +55,7 @@ class KriyaLexer(object):
         "COMMA",
         "COLON",
         "BOOLEAN",
-        "NULL"
+        "NULL",
     )
 
     # brackets regex
@@ -53,6 +69,8 @@ class KriyaLexer(object):
 
     # colon used in objects to define key: value pairs
     t_COLON = r':'
+
+    t_IDENTIFIER = r'[_a-zA-Z][_a-zA-Z0-9]*'
 
     # Ignored token with an action associated with it
     @TOKEN(r'[\s]+')
@@ -130,7 +148,7 @@ class KriyaLexer(object):
         t.value = t.value.strip()
         return t
 
-    @TOKEN(r'(\s+)? ("""(.|\n)*""")|(```(.|\n)*```)')
+    @TOKEN(r'("""(.|\n|\s)+?(?=""")""")|(```(.|\n|\s)+?(?=```)```)')
     def t_DOC_STRING(self, t):
         t.lexer.lineno += t.value.count('\n')
         doc_string = t.value.strip()
@@ -147,21 +165,6 @@ class KriyaLexer(object):
         t.value = '\n'.join(doc_string_lines)
         return t
 
-    def unescape(self, string):
-        escape_map = {
-            "\\n": "\n",
-            "\\r": "\r",
-            "\\b": "\b",
-            "\\t": "\t",
-            "\\|": "|",
-            "\\\"": "\"",
-            "\\\'": "\'",
-        }
-        string = str(string).strip()
-        for unescape_key in escape_map.keys():
-            string = string.replace(unescape_key, escape_map[unescape_key])
-        return string
-
     @TOKEN(r'(((\s+)?\|.*\|(\s+)?)\n?)+')
     def t_TABLE(self, t):
         t.lexer.lineno += t.value.count('\n')
@@ -170,14 +173,14 @@ class KriyaLexer(object):
         t.value = []
         for table_line in table_lines:
             columns = re.findall(r'(?<=\|)(?:\\\||\\n|\\t|[\w\s])*?(?=\|)', table_line.strip())
-            t.value.append([self.unescape(column) for column in columns if column != '|'])
+            t.value.append([unescape(column) for column in columns if column != '|'])
 
         return t
 
     # string - escaped chars and all but Unicode control characters
     @TOKEN(r'"(\\[bfrnt"/\\]|[^\u0022\u005C\u0000-\u001F\u007F-\u009F]|\\u[0-9a-fA-F]{4})*"')
     def t_STRING(self, t):
-        t.value = t.value[1:-1]
+        t.value = unescape(t.value[1:-1])
         return t
 
     @TOKEN(r'(-?)(0|[1-9][0-9]*)(\.[0-9]*)?([eE][+\-]?[0-9]*)?')
@@ -198,11 +201,11 @@ class KriyaLexer(object):
         t.value = None
         return t
 
-    @TOKEN(r'(\s+)?[^\"\{\}\:\\[\],\n]+')
-    def t_DESCRIPTION_LINE(self, t):
-        # t.lexer.lineno += t.value.count('\n')
-        t.value = t.value.strip()
-        return t
+    # @TOKEN(r'(\s+)?[^\"\{\}\:\\[\],\n]+')
+    # def t_DESCRIPTION_LINE(self, t):
+    #     # t.lexer.lineno += t.value.count('\n')
+    #     t.value = t.value.strip()
+    #     return t
 
     # Error handler for illegal characters
     def t_error(self, t):
@@ -265,8 +268,8 @@ class KriyaParser(object):
 
     def p_description(self, p):
         """
-        description : DESCRIPTION_LINE
-                    | DESCRIPTION_LINE description
+        description : DOC_STRING
+                    | DOC_STRING description
         """
         p[0] = p[1]
         if len(p) > 2:
@@ -358,10 +361,10 @@ class KriyaParser(object):
         """
         step : STEP
              | STEP TABLE
-             | STEP json
+             | STEP object
              | STEP DOC_STRING
              | STEP DOC_STRING TABLE
-             | STEP DOC_STRING json
+             | STEP DOC_STRING object
         """
         name = p[1]
         step_conjunction = None
@@ -374,7 +377,7 @@ class KriyaParser(object):
                 doc_string = p[2]
                 del p.slice[2]
 
-        step_data={}
+        step_data = {}
         if len(p) > 2:
             if p.slice[2].type == 'TABLE':
                 table = p[2]
@@ -385,8 +388,8 @@ class KriyaParser(object):
                         table_data.append({})
                         for j in range(len(table[i])):
                             table_data[i - 1][table[0][j]] = table[i][j]
-                    step_data['table_data']=table_data
-            elif p.slice[2].type == 'json':
+                    step_data['table_data'] = table_data
+            elif p.slice[2].type == 'object':
                 step_data = p[2]
                 del p.slice[2]
 
@@ -421,6 +424,8 @@ class KriyaParser(object):
         """
         pair : STRING COLON value COMMA pair
              | STRING COLON value
+             | IDENTIFIER COLON value COMMA pair
+             | IDENTIFIER COLON value
         """
         p[0] = {p[1]: p[3]}
         if len(p) > 4:
@@ -480,8 +485,10 @@ if __name__ == '__main__':
      @MyTag3
     Feature: My feature
         # Comment before description
+        """
         This feature description describes the feature.
         It is a multi line feature description.
+        """
         
          # Comment for Background ## Background:
         Background:
@@ -512,12 +519,12 @@ if __name__ == '__main__':
           # sComment 1
         Then scenario 1 step 3
         {
-                "key1": 1,
-                "key2": true,
-                "key3": "\"string value\"\n\t",
-                "key3": 10.3,
-                "key5": ["this", "is","an","array","with", 7, "values"],
-                "key6": {"type":"Object value"}
+                "\"key\":\n\t 3": 1,
+                key2: true,
+                key3: "\"string value\"\n\t",
+                key4: 10.3,
+                key5: ["this", "is","an","array","with", 7, "values"],
+                key6: {type:"Object value"}
         }
         
     # Comment 2

@@ -3,8 +3,10 @@
  @my_tag1
  Feature: My feature 2
    # Comment before description
+   """
    This feature description describes the feature.
    It is a multi line feature description.
+   """
         
    # Comment for Background ## Background:
 #  Background:

@@ -3,20 +3,22 @@
  @my_tag5
  Feature: My feature
     # Comment before description
+   """
    This feature description describes the feature.
    It is a multi line feature description.
+   """
         
    # Comment for Background ## Background:
    Background:
      Given my sample step definition1
      And my sample step definition1
      {
-            "key1": 1,
-            "key2": true,
-            "key3": "\"string value\"\n\t",
-            "key3": 10.3,
-            "key5": ["this", "is","an","array","with", 7, "values"],
-            "key6": {"type":"Object value"}
+            "\"key\":\n\t 3": 1,
+            key2: true,
+            key3: "\"string value\"\n\t",
+            key4: 10.3,
+            key5: ["this", "is","an","array","with", 7, "values"],
+            key6: {type:"Object value"}
      }
 
      And my sample step definition2

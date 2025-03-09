@@ -8,6 +8,20 @@ from framework.core.models.test_catalog import TestFeature, TestScenario, TestSt
 from framework.core.utils.funcutils import wrap_function_before
 from framework.core.utils.logger import logger
 
+def unescape(string):
+    escape_map = {
+        "\\n": "\n",
+        "\\r": "\r",
+        "\\b": "\b",
+        "\\t": "\t",
+        "\\|": "|",
+        "\\\"": "\"",
+        "\\\'": "\'",
+    }
+    string = str(string).strip()
+    for unescape_key in escape_map.keys():
+        string = string.replace(unescape_key, escape_map[unescape_key])
+    return string
 
 # --- Tokenizer
 
@@ -42,7 +56,7 @@ class JSONLexer(object):
     # string - escaped chars and all but Unicode control characters
     @TOKEN(r'"(\\[bfrnt"/\\]|[^\u0022\u005C\u0000-\u001F\u007F-\u009F]|\\u[0-9a-fA-F]{4})*"')
     def t_STRING(self, t):
-        t.value = t.value[1:-1]
+        t.value = unescape(t.value[1:-1])
         return t
 
     @TOKEN(r'(-?)(0|[1-9][0-9]*)(\.[0-9]*)?([eE][+\-]?[0-9]*)?')
@@ -195,7 +209,7 @@ class JSONParser(object):
 if __name__ == '__main__':
     data = r'''# Comment line 1
     {
-        "key1": "value1", # Comment line 2
+        "key1": "value1\n\t", # Comment line 2
         "key2": 2.0,
         "key3": false,
         # Comment line 3 "ignoredKey": "Should not appear in AST",
