@@ -4,7 +4,7 @@ from typing import Optional, Dict
 
 from pydantic import BaseModel, Field
 
-from framework.core.utils.datautils import get_empty_list
+from framework.core.utils.datautils import get_empty_list, get_empty_dict
 
 
 class TestNode(BaseModel):
@@ -144,3 +144,26 @@ class TestFeature(TestNode):
         if self.scenarios:
             for scenario in self.scenarios:
                 scenario.parent = self
+
+
+class IterationPolicy(Enum):
+    ALL_PER_ITERATION = 0
+    ONE_PER_ITERATION = 1
+
+
+class FeatureExecutionProfile(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    scenarios: Optional[list[str]] = Field(default_factory=get_empty_list)
+    number_of_iterations: Optional[int] = 1
+    iteration_policy: Optional[IterationPolicy] = IterationPolicy.ALL_PER_ITERATION
+    probability_map: Optional[dict[float, str]] = Field(default_factory=get_empty_dict)
+
+
+class TestExecutionProfile(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    features: Optional[list[FeatureExecutionProfile]] = Field(default_factory=get_empty_list)
+    number_of_iterations: Optional[int] = 1
+    iteration_policy: Optional[IterationPolicy] = IterationPolicy.ALL_PER_ITERATION
+    probability_map: Optional[dict[float, FeatureExecutionProfile]] = Field(default_factory=get_empty_dict)

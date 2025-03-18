@@ -10,7 +10,7 @@ from types import NoneType
 import yaml
 
 from framework.core.interfaces.lifecycle import DependencyInjector, TestEventListener, TestLifecycleHook
-from framework.core.interfaces.test_interfaces import StepRunner, FeatureParser, TestCatalogManager
+from framework.core.interfaces.test_interfaces import StepRunner, FeatureParser, FeatureStore
 from framework.core.models.generic import Context
 from framework.core.models.karta_config import KartaConfig, default_karta_config
 from framework.core.models.test_catalog import TestFeature, TestStep, TestScenario, StepType
@@ -35,11 +35,11 @@ class KartaRuntime:
     config: KartaConfig = default_karta_config
     properties: dict[str, object] = {}
     dependency_injector: DependencyInjector = None
-    plugins: dict[str, StepRunner | FeatureParser | DependencyInjector | TestCatalogManager] = {}
+    plugins: dict[str, StepRunner | FeatureParser | DependencyInjector | FeatureStore] = {}
     step_runners: list[StepRunner] = []
     feature_parsers: list[FeatureParser] = []
     parser_map: dict[str, FeatureParser] = {}
-    test_catalog_manager: TestCatalogManager = None
+    test_catalog_manager: FeatureStore = None
     event_processor: EventProcessor = None
 
     def __init__(self, config: KartaConfig = default_karta_config):
@@ -121,7 +121,7 @@ class KartaRuntime:
         plugin = self.plugins[self.config.test_catalog_manager]
         if not self.config.test_catalog_manager:
             raise Exception("Need a test catalog manager configured")
-        if not isinstance(plugin, TestCatalogManager):
+        if not isinstance(plugin, FeatureStore):
             raise Exception("Passed plugin is not a TestCatalogManager" + str(plugin.__class__))
         self.test_catalog_manager = plugin
 

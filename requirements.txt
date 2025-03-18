@@ -4,3 +4,6 @@ pydantic
 ply
 starlette
 uvicorn
+selenium
+selenium-page-factory
+pyinstaller

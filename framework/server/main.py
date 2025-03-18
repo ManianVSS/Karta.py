@@ -50,7 +50,7 @@ async def run_feature_api(request: Request):
     feature_source = (await request.body()).decode("utf-8")
     feature = karta_runtime.plugins['Gherkin'].parse_feature(feature_source)
     feature.source = request.query_params["source"] if ("source" in request.query_params.keys()) else request.url.path
-    return karta_runtime.run_feature(Run(),feature)
+    return karta_runtime.run_feature(Run(), feature)
 
 
 @app.post("/run_step")
@@ -68,10 +68,15 @@ async def run_step_api(step: TestStep):
         step_result.end_time = datetime.now()
         return step_result
 
+...
+@app.get("/list_scenarios")
+async def list_scenarios():
+    return karta_runtime.test_catalog_manager.list_scenarios()
 
-@app.get("/get_catalog")
-async def get_catalog():
-    return karta_runtime.test_catalog_manager.get_catalog()
+
+@app.get("/list_features")
+async def list_features():
+    return karta_runtime.test_catalog_manager.list_features()
 
 
 @app.post("/run_tags")

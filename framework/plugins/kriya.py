@@ -5,7 +5,7 @@ from pathlib import Path
 
 import yaml
 
-from framework.core.interfaces.test_interfaces import FeatureParser, StepRunner, TestCatalogManager
+from framework.core.interfaces.test_interfaces import FeatureParser, StepRunner, FeatureStore
 from framework.core.models.test_catalog import TestFeature, TestStep, TestScenario
 from framework.core.utils import importutils
 from framework.core.utils.logger import logger
@@ -36,10 +36,11 @@ When = step_def
 Then = step_def
 
 
-class Kriya(FeatureParser, StepRunner, TestCatalogManager):
+class Kriya(FeatureParser, StepRunner, FeatureStore):
     dependency_injector = Inject()
 
     step_definition_mapping: dict[str, callable] = {}
+    feature_map: dict[str, set[TestFeature]] = {}
     scenario_map: dict[str, set[TestScenario]] = {}
 
     def __init__(self, feature_directory: str, step_def_package: str):
@@ -93,15 +94,27 @@ class Kriya(FeatureParser, StepRunner, TestCatalogManager):
             message = "Step definition mapping for {} could not be found".format(step_to_call)
             return {}, False, message
 
-    def get_catalog(self):
-        catalog = {}
-        for tag, scenarios in self.scenario_map.items():
-            catalog[tag] = [scenario.parent.name + "." + scenario.name for scenario in scenarios]
-        return catalog
+    def list_scenarios(self):
+        # catalog = {}
+        # for tag, scenarios in self.scenario_map.items():
+        #     catalog[tag] = []
+        #     for scenario in scenarios:
+        #         catalog[tag].append(scenario)
+        #         catalog[scenario.name] = scenario
+        return self.scenario_map
+
+    def list_features(self):
+        return self.feature_map
 
     def add_features(self, features: list[TestFeature], ) -> bool:
         for feature in features:
+            if feature.name not in self.feature_map.keys():
+                self.feature_map[feature.name]=set()
+            self.feature_map[feature.name].add(feature)
             for tag in feature.tags:
+                if tag not in self.feature_map.keys():
+                    self.feature_map[tag] = set()
+                self.feature_map[tag].add(feature)
                 if tag not in self.scenario_map.keys():
                     self.scenario_map[tag] = set()
                 for scenario in feature.scenarios:
@@ -113,6 +126,9 @@ class Kriya(FeatureParser, StepRunner, TestCatalogManager):
 
     def add_scenarios(self, scenarios: set[TestScenario], ) -> bool:
         for scenario in scenarios:
+            if scenario.name not in self.scenario_map.keys():
+                self.scenario_map[scenario.name]=set()
+            self.scenario_map[scenario.name].add(scenario)
             for tag in scenario.tags:
                 if tag not in self.scenario_map.keys():
                     self.scenario_map[tag] = set()
