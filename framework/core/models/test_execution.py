@@ -1,10 +1,9 @@
 from datetime import datetime
 from typing import Optional, Dict
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
-from framework.core.models.test_catalog import TestNode, TestScenario
-from framework.core.utils.datautils import get_empty_list
+from framework.core.models.test_catalog import TestScenario
 
 
 class ResultNode(BaseModel):
@@ -54,7 +53,7 @@ class ScenarioResult(ResultNode):
     end_time: Optional[datetime] = None
     successful: bool = True
     error: Optional[str] = None
-    step_results: Optional[list[StepResult]] = Field(default_factory=get_empty_list)
+    step_results: Optional[list[StepResult]] = []
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -76,7 +75,7 @@ class FeatureResult(ResultNode):
     end_time: Optional[datetime] = None
     successful: bool = True
     error: Optional[str] = None
-    scenario_results: Optional[list[ScenarioResult]] = Field(default_factory=get_empty_list)
+    scenario_results: Optional[list[ScenarioResult]] = []
     _line_number: Optional[int] = 0
 
     def __init__(self, **kwargs):
@@ -98,7 +97,7 @@ class Run(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     tags: Optional[set[str]] = None
-    scenarios: Optional[set[TestScenario]] = Field(default_factory=get_empty_list)
+    scenarios: Optional[set[TestScenario]] = set()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -109,7 +108,7 @@ class RunResult(BaseModel):
     end_time: Optional[datetime] = None
     successful: bool = True
     error: Optional[str] = None
-    feature_results: Optional[list[FeatureResult]] = Field(default_factory=get_empty_list)
+    feature_results: Optional[list[FeatureResult]] = []
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

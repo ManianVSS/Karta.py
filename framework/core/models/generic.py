@@ -2,9 +2,7 @@ import json
 from pathlib import Path
 from typing import Optional
 
-from pydantic import BaseModel, Field
-
-from framework.core.utils.datautils import get_empty_dict, get_empty_list
+from pydantic import BaseModel
 
 
 class VarClass(dict):
@@ -51,5 +49,5 @@ class TestProperties(VarClass):
 
 
 class FunctionArgs(BaseModel):
-    args: Optional[list] = Field(default_factory=get_empty_list)
-    kwargs: Optional[dict] = Field(default_factory=get_empty_dict)
+    args: Optional[list] = []
+    kwargs: Optional[dict] = {}

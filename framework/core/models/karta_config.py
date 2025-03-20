@@ -1,10 +1,9 @@
 from typing import Optional
 
 import yaml
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from framework.core.models.generic import FunctionArgs
-from framework.core.utils.datautils import get_empty_dict, get_empty_list
 
 
 class PluginConfig(BaseModel):
@@ -17,14 +16,14 @@ class PluginConfig(BaseModel):
 
 
 class KartaConfig(BaseModel):
-    property_files: Optional[list[str]] = Field(default_factory=get_empty_list)
+    property_files: Optional[list[str]] = []
     dependency_injector: Optional[PluginConfig] = None
-    plugins: Optional[dict[str, PluginConfig]] = Field(default_factory=get_empty_dict)
-    step_runners: Optional[list[str]] = Field(default_factory=get_empty_list)
-    parser_map: Optional[dict] = Field(default_factory=get_empty_dict)
+    plugins: Optional[dict[str, PluginConfig]] = {}
+    step_runners: Optional[list[str]] = []
+    parser_map: Optional[dict] = {}
     test_catalog_manager: Optional[str] = None
-    test_lifecycle_hooks: Optional[list[str]] = Field(default_factory=get_empty_list)
-    test_event_listeners: Optional[list[str]] = Field(default_factory=get_empty_list)
+    test_lifecycle_hooks: Optional[list[str]] = []
+    test_event_listeners: Optional[list[str]] = []
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

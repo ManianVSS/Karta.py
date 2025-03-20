@@ -2,7 +2,7 @@ from pathlib import Path
 
 from framework.core.interfaces.test_interfaces import FeatureParser
 from framework.core.models.test_catalog import TestFeature
-from framework.parsers.GkerkinParser.GherkinParser import GherkinParser
+from framework.parsers.gherkin.GherkinParser import GherkinParser
 
 
 class GherkinPlugin(FeatureParser):

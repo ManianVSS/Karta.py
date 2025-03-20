@@ -1,12 +1,9 @@
-import re
-from copy import deepcopy
-
 from ply.lex import lex, TOKEN
 from ply.yacc import yacc
 
-from framework.core.models.test_catalog import TestFeature, TestScenario, TestStep
 from framework.core.utils.funcutils import wrap_function_before
 from framework.core.utils.logger import logger
+
 
 def unescape(string):
     escape_map = {

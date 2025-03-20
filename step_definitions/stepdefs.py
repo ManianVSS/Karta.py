@@ -1,7 +1,7 @@
 import random
 
-from framework.plugins.kriya import Given, step
 from framework.core.utils.logger import logger
+from framework.plugins.kriya import Given, step
 
 
 @Given("my sample step definition1")

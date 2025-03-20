@@ -2,9 +2,7 @@ import itertools
 from enum import Enum
 from typing import Optional, Dict
 
-from pydantic import BaseModel, Field
-
-from framework.core.utils.datautils import get_empty_list, get_empty_dict
+from pydantic import BaseModel
 
 
 class TestNode(BaseModel):
@@ -85,9 +83,9 @@ class TestStep(TestNode):
 class TestScenario(TestNode):
     description: Optional[str] = None
     tags: Optional[set[str]] = None
-    setup_steps: Optional[list[TestStep]] = Field(default_factory=get_empty_list)
+    setup_steps: Optional[list[TestStep]] = []
     steps: list[TestStep]
-    teardown_steps: Optional[list[TestStep]] = Field(default_factory=get_empty_list)
+    teardown_steps: Optional[list[TestStep]] = []
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -112,7 +110,7 @@ class TestScenario(TestNode):
 class TestFeature(TestNode):
     description: Optional[str] = None
     tags: Optional[set[str]] = None
-    setup_steps: Optional[list[TestStep]] = Field(default_factory=get_empty_list)
+    setup_steps: Optional[list[TestStep]] = []
     scenarios: set[TestScenario]
 
     def __init__(self, **kwargs):
@@ -154,16 +152,16 @@ class IterationPolicy(Enum):
 class FeatureExecutionProfile(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
-    scenarios: Optional[list[str]] = Field(default_factory=get_empty_list)
+    scenarios: Optional[list[str]] = []
     number_of_iterations: Optional[int] = 1
     iteration_policy: Optional[IterationPolicy] = IterationPolicy.ALL_PER_ITERATION
-    probability_map: Optional[dict[float, str]] = Field(default_factory=get_empty_dict)
+    probability_map: Optional[dict[float, str]] = {}
 
 
 class TestExecutionProfile(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
-    features: Optional[list[FeatureExecutionProfile]] = Field(default_factory=get_empty_list)
+    features: Optional[list[FeatureExecutionProfile]] = []
     number_of_iterations: Optional[int] = 1
     iteration_policy: Optional[IterationPolicy] = IterationPolicy.ALL_PER_ITERATION
-    probability_map: Optional[dict[float, FeatureExecutionProfile]] = Field(default_factory=get_empty_dict)
+    probability_map: Optional[dict[float, FeatureExecutionProfile]] = {}

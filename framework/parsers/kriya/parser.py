@@ -1,6 +1,3 @@
-import re
-from copy import deepcopy
-
 from ply.lex import lex, TOKEN
 from ply.yacc import yacc
 
@@ -285,32 +282,8 @@ class KriyaParser(object):
             tags = p[1]
             del p.slice[1]
 
-        if p.slice[1].type == 'SCENARIO':
-            p[0] = TestScenario(name=p[1].strip(), steps=p[2], tags=tags, )
-            p[0].line_number = p.slice[1].lineno
-        else:
-            table = p[4]
-            table_data = []
-
-            if not table or len(table) < 2:
-                raise Exception("At least one example data row needs to be provided.")
-
-            scenarios = []
-            template_steps = p[2]
-            for i in range(1, len(table)):
-                table_data.append({})
-                scenario_steps = []
-                for template_step in template_steps:
-                    scenario_step = deepcopy(template_step)
-                    for j in range(len(table[i])):
-                        table_data[i - 1][table[0][j]] = table[i][j]
-                        scenario_step.name = scenario_step.name.replace("<" + table[0][j] + ">", table[i][j])
-                    scenario_steps.append(scenario_step)
-                scenario = TestScenario(name=p[1].strip(), steps=scenario_steps, tags=tags, )
-                scenario.line_number = p.slice[1].lineno
-                scenarios.append(scenario)
-
-            p[0] = scenarios
+        p[0] = TestScenario(name=p[1].strip(), steps=p[2], tags=tags, )
+        p[0].line_number = p.slice[1].lineno
 
     def p_steps(self, p):
         """

@@ -20,22 +20,6 @@ def parse_value(value: str) -> object:
         return value
 
 
-def get_empty_tuple():
-    return tuple()
-
-
-def get_empty_list():
-    return list()
-
-
-def get_empty_set():
-    return set()
-
-
-def get_empty_dict():
-    return dict()
-
-
 def merge_lists(*lists_to_merge):
     merged_list = []
     for list_to_merge in lists_to_merge:

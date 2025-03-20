@@ -1,6 +1,5 @@
 import itertools
 import traceback
-from copy import deepcopy
 from pathlib import Path
 
 import yaml
@@ -9,7 +8,7 @@ from framework.core.interfaces.test_interfaces import FeatureParser, StepRunner,
 from framework.core.models.test_catalog import TestFeature, TestStep, TestScenario
 from framework.core.utils import importutils
 from framework.core.utils.logger import logger
-from framework.parsers.KriyaParser.KriyaParser import KriyaParser
+from framework.parsers.kriya.parser import KriyaParser
 from framework.plugins.dependency_injector import Inject
 
 

@@ -18,20 +18,22 @@ def karta_main(args=None):
         group.add_argument("-f", "--features", help="Features to run", type=str, nargs='+')
         parsed_args = arg_parser.parse_args(args=args)
 
+        run_results = None
         if parsed_args.tags:
             logger.info("Tags to run {}".format(parsed_args.tags))
             run_results = karta_runtime.run_tags(parsed_args.tags)
-            logger.info("Run results are " + str(run_results))
         elif parsed_args.features:
             logger.info("Features to run {}".format(parsed_args.features))
             run_results = karta_runtime.run_feature_files(parsed_args.features)
-            for (feature_file, feature_result) in run_results.feature_results.items():
-                logger.info(
-                    "Result of " + str(feature_file) + " is \n" + json.dumps(feature_result.model_dump(mode='json'),
-                                                                             indent=4))
         else:
             print("Error either tags or features needs to be passed to run", file=sys.stderr)
             arg_parser.print_help(sys.stderr)
+
+        logger.debug("Run results are " + str(run_results))
+        for feature_result in run_results.feature_results:
+            logger.info(
+                "Result of " + str(feature_result.source) + " is " + "passed" if feature_result.is_successful() else (
+                    "errorred" if feature_result.error else "failed"))
 
     except Exception as ex:
         print("Exception occurred" + str(ex), file=sys.stderr)

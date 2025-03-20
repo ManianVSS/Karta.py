@@ -16,7 +16,6 @@ from framework.core.models.karta_config import KartaConfig, default_karta_config
 from framework.core.models.test_catalog import TestFeature, TestStep, TestScenario, StepType
 from framework.core.models.test_execution import StepResult, ScenarioResult, FeatureResult, Run, RunResult
 from framework.core.utils.datautils import deep_update
-from framework.core.utils.logger import logger
 from framework.core.utils.properties import read_properties
 from framework.plugins.dependency_injector import KartaDependencyInjector
 from framework.runner.events import EventProcessor
