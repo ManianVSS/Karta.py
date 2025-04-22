@@ -86,6 +86,7 @@ class TestScenario(TestNode):
     setup_steps: Optional[list[TestStep]] = []
     steps: list[TestStep]
     teardown_steps: Optional[list[TestStep]] = []
+    probability: Optional[float] = 1.0
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -112,6 +113,7 @@ class TestFeature(TestNode):
     tags: Optional[set[str]] = None
     setup_steps: Optional[list[TestStep]] = []
     scenarios: set[TestScenario]
+    number_of_iterations: Optional[int] = 1
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

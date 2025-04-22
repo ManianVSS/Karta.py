@@ -5,7 +5,7 @@ from copy import deepcopy
 from datetime import datetime
 from importlib import import_module
 from pathlib import Path
-from types import NoneType
+from typing import Union, Optional
 
 import yaml
 
@@ -34,7 +34,7 @@ class KartaRuntime:
     config: KartaConfig = default_karta_config
     properties: dict[str, object] = {}
     dependency_injector: DependencyInjector = None
-    plugins: dict[str, StepRunner | FeatureParser | DependencyInjector | FeatureStore] = {}
+    plugins: dict[str, Union[StepRunner, FeatureParser, DependencyInjector, FeatureStore]] = {}
     step_runners: list[StepRunner] = []
     feature_parsers: list[FeatureParser] = []
     parser_map: dict[str, FeatureParser] = {}
@@ -171,7 +171,7 @@ class KartaRuntime:
         self.event_processor.run_complete(run, run_result)
         return run_result
 
-    def find_step_runner_for_step(self, name: str) -> StepRunner | None:
+    def find_step_runner_for_step(self, name: str) -> Optional[StepRunner]:
         for step_runner in self.step_runners:
             if step_runner.is_step_available(name):
                 return step_runner
@@ -184,7 +184,7 @@ class KartaRuntime:
         return steps
 
     def run_step(self, run: Run, feature: TestFeature, scenario: TestScenario, step: TestStep,
-                 context: Context) -> StepResult | bool:
+                 context: Context) -> Union[StepResult, bool]:
         # logger.info('Running step %s', str(step.name))
         step_result = StepResult(name=step.name, )
         step_result.source = step.source
@@ -199,9 +199,9 @@ class KartaRuntime:
 
         step_return = step_runner.run_step(step, context)
 
-        if step.type== StepType.STEP:
+        if step.type == StepType.STEP:
             step_result_data = {}
-            if not isinstance(step_return, NoneType):
+            if not isinstance(step_return, type(None)):
                 if isinstance(step_return, dict):
                     step_result_data = step_return
                 elif isinstance(step_return, tuple):
@@ -212,7 +212,7 @@ class KartaRuntime:
                             if len(step_return) > 2:
                                 step_result.error = step_return[2]
                 elif isinstance(step_return, bool):
-                    step_result.successful=step_return
+                    step_result.successful = step_return
                 else:
                     raise Exception("Unprocessable result type: ", type(step_result))
             if step_result_data and len(step_result_data) > 0:

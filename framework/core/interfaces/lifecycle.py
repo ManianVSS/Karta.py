@@ -74,11 +74,17 @@ class FeatureStartEvent(Event):
     run: Optional[Run] = None
     feature: Optional[TestFeature] = None
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
 
 class ScenarioStartEvent(Event):
     run: Optional[Run] = None
     feature: Optional[TestFeature] = None
     scenario: Optional[TestScenario] = None
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
 
 class StepStartEvent(Event):
@@ -86,6 +92,9 @@ class StepStartEvent(Event):
     feature: Optional[TestFeature] = None
     scenario: Optional[TestScenario] = None
     step: Optional[TestStep] = None
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
 
 class StepCompleteEvent(Event):
@@ -95,6 +104,9 @@ class StepCompleteEvent(Event):
     step: Optional[TestStep] = None
     result: Optional[StepResult] = None
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
 
 class ScenarioCompleteEvent(Event):
     run: Optional[Run] = None
@@ -102,16 +114,25 @@ class ScenarioCompleteEvent(Event):
     scenario: Optional[TestScenario] = None
     result: Optional[ScenarioResult] = None
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
 
 class FeatureCompleteEvent(Event):
     run: Optional[Run] = None
     feature: Optional[TestFeature] = None
     result: Optional[FeatureResult] = None
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
 
 class RunCompleteEvent(Event):
     run: Optional[Run] = None
     result: Optional[RunResult] = None
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
 
 class TestEventListener(metaclass=abc.ABCMeta):

@@ -1,5 +1,4 @@
 import argparse
-import json
 import sys
 
 from framework.core.utils.logger import logger
