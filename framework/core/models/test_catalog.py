@@ -4,6 +4,8 @@ from typing import Optional, Dict
 
 from pydantic import BaseModel
 
+from framework.core.models.testdata import GeneratedObjectValue
+
 
 class TestNode(BaseModel):
     name: Optional[str] = None
@@ -64,7 +66,7 @@ class TestStep(TestNode):
     conjunction: Optional[str] = None
     # positional_parameters: Optional[list] = []
     type: Optional[StepType] = StepType.STEP
-    data: Optional[Dict] = None
+    data_rules: Optional[GeneratedObjectValue] = None
     # text: Optional[str] = None
     steps: Optional[list['TestStep']] = None
 
@@ -147,8 +149,9 @@ class TestFeature(TestNode):
 
 
 class IterationPolicy(Enum):
-    ALL_PER_ITERATION = 0
-    ONE_PER_ITERATION = 1
+    ALL_PER_ITERATION = "ALL_PER_ITERATION"
+    ONE_PER_ITERATION = "ONE_PER_ITERATION"
+    SOME_PER_ITERATION = "SOME_PER_ITERATION"
 
 
 class FeatureExecutionProfile(BaseModel):

@@ -5,6 +5,7 @@ from copy import deepcopy
 from datetime import datetime
 from importlib import import_module
 from pathlib import Path
+from random import Random
 from typing import Union, Optional
 
 import yaml
@@ -31,6 +32,7 @@ def get_plugin_from_config(plugin_config):
 
 
 class KartaRuntime:
+    random: Random = Random()
     config: KartaConfig = default_karta_config
     properties: dict[str, object] = {}
     dependency_injector: DependencyInjector = None
@@ -195,7 +197,7 @@ class KartaRuntime:
         if step_runner is None:
             raise Exception("Unimplemented step: " + step.name)
         self.event_processor.step_start(run, feature, scenario, step)
-        context.step_data = step.data if step.data else {}
+        context.step_data = step.data_rules.generate_next_value(self.random) if step.data_rules else {}
 
         step_return = step_runner.run_step(step, context)
 
@@ -224,7 +226,7 @@ class KartaRuntime:
                 for nested_step in step.steps:
                     try:
                         nested_step_result = self.run_step(run, feature, scenario, nested_step, context)
-                        nested_step_result._parent = step
+                        nested_step_result.parent = step_result
                         step_result.add_step_result(nested_step_result)
                         if not nested_step_result.is_successful():
                             break
@@ -238,7 +240,7 @@ class KartaRuntime:
                 for nested_step in step.steps:
                     try:
                         nested_step_result = self.run_step(run, feature, scenario, nested_step, context)
-                        nested_step_result._parent = step
+                        nested_step_result.parent = step_result
                         step_result.add_step_result(nested_step_result)
                         if not nested_step_result.is_successful():
                             break
@@ -265,7 +267,7 @@ class KartaRuntime:
         for step in itertools.chain(scenario.parent.setup_steps, scenario.steps):
             try:
                 step_result = self.run_step(run, feature, scenario, step, context)
-                step_result._parent = scenario_result
+                step_result.parent = scenario_result
                 scenario_result.add_step_result(step_result)
                 if not step_result.is_successful():
                     break
@@ -286,7 +288,7 @@ class KartaRuntime:
         self.event_processor.feature_start(run, feature)
         for scenario in feature.scenarios:
             scenario_result = self.run_scenario(run, feature, scenario, )
-            scenario_result._parent = feature_result
+            scenario_result.parent = feature_result
             feature_result.add_scenario_result(scenario_result)
         feature_result.end_time = datetime.now()
         self.event_processor.feature_complete(run, feature, feature_result)
@@ -315,7 +317,7 @@ class KartaRuntime:
             self.event_processor.feature_start(run, feature)
             for scenario in feature_to_scenario_map[feature]:
                 scenario_result = self.run_scenario(run, feature, scenario, )
-                scenario_result._parent = feature_result
+                scenario_result.parent = feature_result
                 feature_result.add_scenario_result(scenario_result)
             feature_result.end_time = datetime.now()
             run_result.add_feature_result(feature_result)

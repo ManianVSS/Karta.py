@@ -23,7 +23,45 @@
             key3: "\"string value\"\n\t",
             key3: 10.3,
             key5: ["this", "is","an","array","with", 7, "values"],
-            key6: {type:"Object value"}
+            key6: {type:"Object value"},
+
+            #Dynamic data
+            dyna_data1: $int_range(1, 10),
+            dyna_data2: $float_range(1.0, 10.0),
+            dyna_data3: $random_string(10),
+            dyna_data4: $one_from_list["this", "is","an","array","with", 7, "values"],
+            dyna_data5: $some_from_list["this", "is","an","array","with", 7, "values"],
+            dyna_data6: $one_from_map{
+                %10: "dvalue1",
+                %20: "dvalue2",
+                %30: "dvalue3",
+                %40: "dvalue4"
+             },
+            dyna_data7: $some_from_map{
+                %10: "dsvalue1",
+                %20: "dsvalue2",
+                %30: "dsvalue3",
+                %40: "dsvalue4"
+             },
+             dyna_object:{
+                dyna_odata1: $int_range(1, 10),
+                dyna_odata2: $float_range(1.0, 10.0),
+                dyna_odata3: $random_string(10),
+                dyna_odata4: $one_from_list["this", "is","an","array","with", 7, "values"],
+                dyna_odata5: $some_from_list["this", "is","an","array","with", 7, "values"],
+                dyna_odata6: $one_from_map{
+                    %10: "dovalue1",
+                    %20: "dovalue2",
+                    %30: "dovalue3",
+                    %40: "dovalue4"
+                 },
+                dyna_odata7: $some_from_map{
+                    %10: "dosvalue1",
+                    %20: "dosvalue2",
+                    %30: "dosvalue3",
+                    %40: "dosvalue4"
+                 }
+             }
      }
 
      And my sample step definition2

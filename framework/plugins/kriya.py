@@ -1,7 +1,7 @@
 import itertools
 import traceback
 from pathlib import Path
-from typing import Union
+from typing import Union, Callable
 
 import yaml
 
@@ -39,7 +39,7 @@ Then = step_def
 class Kriya(FeatureParser, StepRunner, FeatureStore):
     dependency_injector = Inject()
 
-    step_definition_mapping: dict[str, callable] = {}
+    step_definition_mapping: dict[str, Callable] = {}
     feature_map: dict[str, set[TestFeature]] = {}
     scenario_map: dict[str, set[TestScenario]] = {}
 
@@ -109,7 +109,7 @@ class Kriya(FeatureParser, StepRunner, FeatureStore):
     def add_features(self, features: list[TestFeature], ) -> bool:
         for feature in features:
             if feature.name not in self.feature_map.keys():
-                self.feature_map[feature.name]=set()
+                self.feature_map[feature.name] = set()
             self.feature_map[feature.name].add(feature)
             for tag in feature.tags:
                 if tag not in self.feature_map.keys():
@@ -127,7 +127,7 @@ class Kriya(FeatureParser, StepRunner, FeatureStore):
     def add_scenarios(self, scenarios: set[TestScenario], ) -> bool:
         for scenario in scenarios:
             if scenario.name not in self.scenario_map.keys():
-                self.scenario_map[scenario.name]=set()
+                self.scenario_map[scenario.name] = set()
             self.scenario_map[scenario.name].add(scenario)
             for tag in scenario.tags:
                 if tag not in self.scenario_map.keys():

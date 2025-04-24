@@ -1,7 +1,10 @@
 from ply.lex import lex, TOKEN
 from ply.yacc import yacc
 
-from framework.core.models.test_catalog import TestFeature, TestScenario, TestStep, StepType
+from framework.core.models.test_catalog import TestFeature, TestScenario, TestStep, StepType, IterationPolicy
+from framework.core.models.testdata import GeneratedObjectValue, ListDataValue, IntegerRangeValue, FloatRangeValue, \
+    RandomStringValue, OneSelectedFromListValue, SomeSelectedFromListValue, ProbabilityMapOneValue, \
+    ProbabilityMapSomeValue
 from framework.core.utils.funcutils import wrap_function_before
 from framework.core.utils.logger import logger
 
@@ -28,8 +31,11 @@ class KriyaLexer(object):
     # All tokens must be named in advance.
     tokens = (
         'FEATURE',
+        'ITERATIONS',
+        'ITERATION_POLICY',
         'BACKGROUND',
         'SCENARIO',
+        "PROBABILITY",
         'STEP',
         'DOC_STRING',
         'TAG',
@@ -38,32 +44,55 @@ class KriyaLexer(object):
         'CONDITION',
         'LOOP',
 
-        "LBRACE",
-        "IDENTIFIER",
+        "LEFT_CURLY_BRACE",
+        "RIGHT_CURLY_BRACE",
+        "LEFT_PARENTHESIS",
+        "RIGHT_PARENTHESIS",
+        "LEFT_SQUARE_BRACKET",
+        "RIGHT_SQUARE_BRACKET",
+
         "STRING",
         "COLON",
         "NUMBER",
         "BOOLEAN",
         "NULL",
         "COMMA",
-        "LBRACKET",
-        "RBRACKET",
-        "RBRACE",
 
         "STEPS",
+
+        "DATA_INT_RANGE",
+        "DATA_FLOAT_RANGE",
+        "DATA_RANDOM_STRING",
+        "DATA_ONE_FROM_LIST",
+        "DATA_SOME_FROM_LIST",
+        "DATA_ONE_FROM_MAP",
+        "DATA_SOME_FROM_MAP",
+        "DATA_PROBABILITY_PERCENT",
+
+        "IDENTIFIER",
     )
 
     # brackets regex
-    t_LBRACE = r'\{'
-    t_RBRACE = r'\}'
-    t_LBRACKET = r'\['
-    t_RBRACKET = r'\]'
+    t_LEFT_CURLY_BRACE = r'\{'
+    t_RIGHT_CURLY_BRACE = r'\}'
+    t_LEFT_PARENTHESIS = r'\('
+    t_RIGHT_PARENTHESIS = r'\)'
+    t_LEFT_SQUARE_BRACKET = r'\['
+    t_RIGHT_SQUARE_BRACKET = r'\]'
 
     # commas used to separate items in both objects and arrays
     t_COMMA = r','
 
     # colon used in objects to define key: value pairs
     t_COLON = r':'
+
+    t_DATA_INT_RANGE = r'\$int_range'
+    t_DATA_FLOAT_RANGE = r'\$float_range'
+    t_DATA_RANDOM_STRING = r'\$random_string'
+    t_DATA_ONE_FROM_LIST = r'\$one_from_list'
+    t_DATA_SOME_FROM_LIST = r'\$some_from_list'
+    t_DATA_ONE_FROM_MAP = r'\$one_from_map'
+    t_DATA_SOME_FROM_MAP = r'\$some_from_map'
 
     t_IDENTIFIER = r'[_a-zA-Z][_a-zA-Z0-9]*'
 
@@ -90,6 +119,25 @@ class KriyaLexer(object):
         t.value = t.value.strip().removeprefix('Feature:').strip()
         return t
 
+    @TOKEN(r'Iterations:([ \t]+)?[^\n]+')
+    def t_ITERATIONS(self, t):
+        t.value = t.value.strip().removeprefix('Iterations:').strip()
+        t.value = int(t.value)
+        return t
+
+    @TOKEN(r'IterationPolicy:([ \t]+)?[^\n]+')
+    def t_ITERATION_POLICY(self, t):
+        t.value = t.value.strip().removeprefix('IterationPolicy:').strip()
+        if t.value == "all scenario per iteration":
+            t.value = IterationPolicy.ALL_PER_ITERATION
+        elif t.value == "one scenario per iteration":
+            t.value = IterationPolicy.ONE_PER_ITERATION
+        elif t.value == "some scenario per iteration":
+            t.value = IterationPolicy.SOME_PER_ITERATION
+        else:
+            raise SyntaxError(f"Invalid ScenarioRunPerIteration value: {t.value}")
+        return t
+
     @TOKEN(r'Background:')
     def t_BACKGROUND(self, t):
         # t.lexer.lineno += t.value.count('\n')
@@ -104,6 +152,14 @@ class KriyaLexer(object):
             t.value = t.value.removeprefix('Scenario:').strip()
         if t.value.startswith('Example:'):
             t.value = t.value.removeprefix('Example:').strip()
+        return t
+
+    @TOKEN(r'Probability:\s\d{1,3}(\.\d{1,2})?%')
+    def t_PROBABILITY(self, t):
+        t.value = t.value.strip()
+        if t.value.startswith('Probability:'):
+            t.value = t.value.removeprefix('Probability:').strip()[:-1]
+            t.value = float(t.value) / 100.0
         return t
 
     @TOKEN(r'(Given | When | Then | And | But)([ \t]+)?[^\n]+')
@@ -145,6 +201,12 @@ class KriyaLexer(object):
         for i in range(len(doc_string_lines)):
             doc_string_lines[i] = doc_string_lines[i].lstrip()
         t.value = '\n'.join(doc_string_lines)
+        return t
+
+    @TOKEN(r'%\d{1,2}(\.\d{1,2})?')
+    def t_DATA_PROBABILITY_PERCENT(self, t):
+        t.value = t.value.strip()
+        t.value = float(t.value[1:]) / 100.0
         return t
 
     # string - escaped chars and all but Unicode control characters
@@ -218,6 +280,10 @@ class KriyaParser(object):
                 | tags FEATURE DOC_STRING scenarios
                 | tags FEATURE background scenarios
                 | tags FEATURE DOC_STRING background scenarios
+                | tags FEATURE ITERATIONS ITERATION_POLICY scenarios
+                | tags FEATURE DOC_STRING ITERATIONS ITERATION_POLICY scenarios
+                | tags FEATURE ITERATIONS ITERATION_POLICY background scenarios
+                | tags FEATURE DOC_STRING ITERATIONS ITERATION_POLICY background scenarios
         """
         tags = []
         if p.slice[1].type == 'tags':
@@ -227,6 +293,16 @@ class KriyaParser(object):
         description = None
         if p.slice[2].type == 'DOC_STRING':
             description = p[2]
+            del p.slice[2]
+
+        iterations = 1
+        if p.slice[2].type == 'ITERATIONS':
+            iterations = p[2]
+            del p.slice[2]
+
+        iteration_policy = IterationPolicy.ALL_PER_ITERATION
+        if p.slice[2].type == 'ITERATION_POLICY':
+            iteration_policy = p[2]
             del p.slice[2]
 
         background_steps = []
@@ -276,13 +352,26 @@ class KriyaParser(object):
     def p_scenario(self, p):
         """
         scenario : tags SCENARIO steps
+                 | tags SCENARIO PROBABILITY steps
+                 | tags SCENARIO DOC_STRING steps
+                 | tags SCENARIO DOC_STRING PROBABILITY steps
         """
         tags = []
         if p.slice[1].type == 'tags':
             tags = p[1]
             del p.slice[1]
 
-        p[0] = TestScenario(name=p[1].strip(), steps=p[2], tags=tags, )
+        description = None
+        if p.slice[1].type == 'DOC_STRING':
+            description = p[1]
+            del p.slice[1]
+
+        probability = 1.0
+        if p.slice[1].type == 'PROBABILITY':
+            probability = p[1]
+            del p.slice[1]
+
+        p[0] = TestScenario(name=p[1].strip(), steps=p[2], tags=tags, description=description, probability=probability)
         p[0].line_number = p.slice[1].lineno
 
     def p_steps(self, p):
@@ -299,10 +388,10 @@ class KriyaParser(object):
         """
         step : STEP
              | STEP data_object
-             | CONDITION STEPS LBRACE steps RBRACE
-             | CONDITION data_object STEPS LBRACE steps RBRACE
-             | LOOP STEPS LBRACE steps RBRACE
-             | LOOP data_object STEPS LBRACE steps RBRACE
+             | CONDITION STEPS LEFT_CURLY_BRACE steps RIGHT_CURLY_BRACE
+             | CONDITION data_object STEPS LEFT_CURLY_BRACE steps RIGHT_CURLY_BRACE
+             | LOOP STEPS LEFT_CURLY_BRACE steps RIGHT_CURLY_BRACE
+             | LOOP data_object STEPS LEFT_CURLY_BRACE steps RIGHT_CURLY_BRACE
         """
         name = p[1]
         step_conjunction = None
@@ -328,10 +417,10 @@ class KriyaParser(object):
                 doc_string = p[2]
                 del p.slice[2]
 
-        step_data = {}
+        data_rules = {}
         if len(p) > 2:
             if p.slice[2].type == 'data_object':
-                step_data = p[2]
+                data_rules = p[2]
                 del p.slice[2]
 
         nested_steps = []
@@ -339,15 +428,15 @@ class KriyaParser(object):
             if p.slice[2].type == 'STEPS':
                 nested_steps = p[4]
 
-        p[0] = TestStep(type=step_type, conjunction=step_conjunction, name=name, data=step_data,
+        p[0] = TestStep(type=step_type, conjunction=step_conjunction, name=name, data_rules=data_rules,
                         steps=nested_steps if len(nested_steps) > 0 else None)
         p[0].line_number = p.slice[1].lineno
 
     def p_data_object(self, p):
         """
-        data_object : LBRACE pairs RBRACE
+        data_object : LEFT_CURLY_BRACE pairs RIGHT_CURLY_BRACE
         """
-        p[0] = p[2]
+        p[0] = GeneratedObjectValue(fields_dict=p[2])
 
     def p_pairs(self, p):
         """
@@ -372,9 +461,9 @@ class KriyaParser(object):
 
     def p_array(self, p):
         """
-        array : LBRACKET items RBRACKET
+        array : LEFT_SQUARE_BRACKET items RIGHT_SQUARE_BRACKET
         """
-        p[0] = p[2]
+        p[0] = ListDataValue(values=p[2])
 
     def p_items(self, p):
         """
@@ -397,14 +486,66 @@ class KriyaParser(object):
 
     def p_value(self, p):
         """
-        value : NUMBER
+        value : DATA_INT_RANGE LEFT_PARENTHESIS NUMBER COMMA NUMBER RIGHT_PARENTHESIS
+              | DATA_FLOAT_RANGE LEFT_PARENTHESIS NUMBER COMMA NUMBER RIGHT_PARENTHESIS
+              | DATA_RANDOM_STRING LEFT_PARENTHESIS NUMBER RIGHT_PARENTHESIS
+              | DATA_ONE_FROM_LIST array
+              | DATA_SOME_FROM_LIST array
+              | DATA_ONE_FROM_MAP probability_map
+              | DATA_SOME_FROM_MAP probability_map
+              | data_object
+              | array
+              | NUMBER
               | STRING
               | BOOLEAN
               | NULL
-              | data_object
-              | array
+
         """
-        p[0] = p[1]
+        if p.slice[1].type == 'DATA_INT_RANGE':
+            p[0] = IntegerRangeValue(min=int(p[3]), max=int(p[5]))
+        elif p.slice[1].type == 'DATA_FLOAT_RANGE':
+            p[0] = FloatRangeValue(min=float(p[3]), max=float(p[5]))
+        elif p.slice[1].type == 'DATA_RANDOM_STRING':
+            p[0] = RandomStringValue(length=int(p[3]))
+        elif p.slice[1].type == 'DATA_ONE_FROM_LIST':
+            p[0] = OneSelectedFromListValue(values=p[2].values if isinstance(p[2], ListDataValue) else p[2])
+        elif p.slice[1].type == 'DATA_SOME_FROM_LIST':
+            p[0] = SomeSelectedFromListValue(values=p[2].values if isinstance(p[2], ListDataValue) else p[2])
+        elif p.slice[1].type == 'DATA_ONE_FROM_MAP':
+            p[0] = ProbabilityMapOneValue(probability_map=p[2])
+        elif p.slice[1].type == 'DATA_SOME_FROM_MAP':
+            p[0] = ProbabilityMapSomeValue(probability_map=p[2])
+        elif p.slice[1].type == 'data_object':
+            p[0] = p[1]
+        elif p.slice[1].type == 'array':
+            p[0] = p[1]
+        else:
+            p[0] = p[1]
+
+    def p_probability_map(self, p):
+        """
+        probability_map : LEFT_CURLY_BRACE probability_pairs RIGHT_CURLY_BRACE
+        """
+        p[0] = p[2]
+
+    def p_probability_pairs(self, p):
+        """
+        probability_pairs : probability_pair
+                          | empty
+        """
+        if p.slice[1].type == 'probability_pair':
+            p[0] = p[1]
+        else:
+            p[0] = {}
+
+    def p_probability_pair(self, p):
+        """
+        probability_pair : DATA_PROBABILITY_PERCENT COLON value COMMA probability_pair
+                         | DATA_PROBABILITY_PERCENT COLON value
+        """
+        p[0] = {p[3]: p[1]}
+        if len(p) > 4:
+            p[0].update(p[5])
 
     def p_error(self, p):
         logger.error(f'Syntax error at {p!r}')
@@ -466,7 +607,45 @@ if __name__ == '__main__':
                 key3: "\"string value\"\n\t",
                 key4: 10.3,
                 key5: ["this", "is","an","array","with", 7, "values"],
-                key6: {type:"Object value"}
+                key6: {type:"Object value"},
+                
+                #Dynamic data
+                dyna_data1: $int_range(1, 10),
+                dyna_data2: $float_range(1.0, 10.0),
+                dyna_data3: $random_string(10),
+                dyna_data4: $one_from_list["this", "is","an","array","with", 7, "values"],
+                dyna_data5: $some_from_list["this", "is","an","array","with", 7, "values"],
+                dyna_data6: $one_from_map{
+                    %10: "dvalue1",
+                    %20: "dvalue2",
+                    %30: "dvalue3",
+                    %40: "dvalue4"
+                 },
+                dyna_data7: $some_from_map{
+                    %10: "dsvalue1",
+                    %20: "dsvalue2",
+                    %30: "dsvalue3",
+                    %40: "dsvalue4"
+                 },
+                 dyna_object:{
+                    dyna_odata1: $int_range(1, 10),
+                    dyna_odata2: $float_range(1.0, 10.0),
+                    dyna_odata3: $random_string(10),
+                    dyna_odata4: $one_from_list["this", "is","an","array","with", 7, "values"],
+                    dyna_odata5: $some_from_list["this", "is","an","array","with", 7, "values"],
+                    dyna_odata6: $one_from_map{
+                        %10: "dovalue1",
+                        %20: "dovalue2",
+                        %30: "dovalue3",
+                        %40: "dovalue4"
+                     },
+                    dyna_odata7: $some_from_map{
+                        %10: "dosvalue1",
+                        %20: "dosvalue2",
+                        %30: "dosvalue3",
+                        %40: "dosvalue4"
+                     }
+                 }
         }
         If my condition 1 is met
         {

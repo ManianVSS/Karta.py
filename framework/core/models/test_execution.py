@@ -10,6 +10,7 @@ class ResultNode(BaseModel):
     name: Optional[str] = None
     source: Optional[str] = None
     line_number: Optional[int] = 0
+    parent: 'Optional[ResultNode]' = None
 
 
 class StepResult(ResultNode):

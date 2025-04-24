@@ -1,6 +1,6 @@
 from random import Random
 
-from framework.core.utils.randomization_utils import generate_next_composition, generate_next_mutex_composition
+from framework.core.utils.randomization_utils import generate_next_composition_from_probability_map, generate_next_mutex_composition_from_probability_map
 
 rng = Random()
 # for i in range(100):
@@ -26,7 +26,7 @@ generated_count_map = {
 }
 
 for i in range(sample_size):
-    gen_values = generate_next_composition(probability_map, rng)
+    gen_values = generate_next_composition_from_probability_map(probability_map, rng)
     for value in gen_values:
         generated_count_map[value] += 1
     for value in generated_count_map.keys():
@@ -51,7 +51,7 @@ generated_count_map = {
 }
 
 for i in range(sample_size):
-    value = generate_next_mutex_composition(probability_map, rng)
+    value = generate_next_mutex_composition_from_probability_map(probability_map, rng)
     # print(value)
     generated_count_map[value] += 1
     for value in generated_count_map.keys():
