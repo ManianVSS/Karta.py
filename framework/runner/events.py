@@ -2,9 +2,7 @@ import queue
 from concurrent.futures.thread import ThreadPoolExecutor
 from datetime import datetime
 
-from framework.core.interfaces.lifecycle import TestLifecycleHook, TestEventListener, Event, RunStartEvent, \
-    FeatureStartEvent, ScenarioStartEvent, StepStartEvent, StepCompleteEvent, ScenarioCompleteEvent, \
-    FeatureCompleteEvent, RunCompleteEvent
+from framework.core.interfaces.lifecycle import TestLifecycleHook, TestEventListener
 from framework.core.models.generic import Context
 from framework.core.models.test_catalog import TestFeature, TestScenario, TestStep
 from framework.core.models.test_execution import Run, StepResult, ScenarioResult, FeatureResult, RunResult
@@ -30,7 +28,6 @@ class EventProcessor:
         self.event_queue = queue.Queue
         self.number_of_threads = number_of_threads
 
-
     def __enter__(self):
         self.event_listener_thread_pool_executor = ThreadPoolExecutor(max_workers=self.number_of_threads)
 
@@ -44,17 +41,13 @@ class EventProcessor:
     def stop(self):
         self.__exit__(None, None, None)
 
-    def send_events_to_listeners(self, event: Event):
-        for test_event_listener in self.test_event_listeners:
-            self.event_listener_thread_pool_executor.submit(test_event_listener.process_event, event)
-
     def run_start(self, run: Run):
         context = Context()
         context.time = datetime.now()
         context.run = run
 
-        event = RunStartEvent(time=context.time, run=run)
-        self.send_events_to_listeners(event)
+        for test_event_listener in self.test_event_listeners:
+            self.event_listener_thread_pool_executor.submit(test_event_listener.run_start, context)
 
         for test_lifecycle_hooks in self.test_lifecycle_hooks:
             test_lifecycle_hooks.run_start(context)
@@ -65,11 +58,26 @@ class EventProcessor:
         context.run = run
         context.feature = feature
 
-        event = FeatureStartEvent(time=context.time, run=run, feature=feature)
-        self.send_events_to_listeners(event)
+        for test_event_listener in self.test_event_listeners:
+            self.event_listener_thread_pool_executor.submit(test_event_listener.feature_start, context)
 
         for test_lifecycle_hooks in self.test_lifecycle_hooks:
             test_lifecycle_hooks.feature_start(context)
+
+    def feature_iteration_start(self, run: Run, feature: TestFeature, iteration_index: int,
+                                scenarios: list[TestScenario]):
+        context = Context()
+        context.time = datetime.now()
+        context.run = run
+        context.feature = feature
+        context.iteration_index = iteration_index
+        context.scenarios = scenarios
+
+        for test_event_listener in self.test_event_listeners:
+            self.event_listener_thread_pool_executor.submit(test_event_listener.feature_iteration_start, context)
+
+        for test_lifecycle_hooks in self.test_lifecycle_hooks:
+            test_lifecycle_hooks.feature_iteration_start(context)
 
     def scenario_start(self, run: Run, feature: TestFeature, scenario: TestScenario):
         context = Context()
@@ -78,8 +86,8 @@ class EventProcessor:
         context.feature = feature
         context.scenario = scenario
 
-        event = ScenarioStartEvent(time=context.time, run=run, feature=feature, scenario=scenario)
-        self.send_events_to_listeners(event)
+        for test_event_listener in self.test_event_listeners:
+            self.event_listener_thread_pool_executor.submit(test_event_listener.scenario_start, context)
 
         for test_lifecycle_hooks in self.test_lifecycle_hooks:
             test_lifecycle_hooks.scenario_start(context)
@@ -92,8 +100,8 @@ class EventProcessor:
         context.scenario = scenario
         context.step = step
 
-        event = StepStartEvent(time=context.time, run=run, feature=feature, scenario=scenario, step=step)
-        self.send_events_to_listeners(event)
+        for test_event_listener in self.test_event_listeners:
+            self.event_listener_thread_pool_executor.submit(test_event_listener.step_start, context)
 
         for test_lifecycle_hooks in self.test_lifecycle_hooks:
             test_lifecycle_hooks.step_start(context)
@@ -107,9 +115,8 @@ class EventProcessor:
         context.step = step
         context.result = result
 
-        event = StepCompleteEvent(time=context.time, run=run, feature=feature, scenario=scenario,
-                                  step=step, result=result)
-        self.send_events_to_listeners(event)
+        for test_event_listener in self.test_event_listeners:
+            self.event_listener_thread_pool_executor.submit(test_event_listener.step_complete, context)
 
         for test_lifecycle_hooks in self.test_lifecycle_hooks:
             test_lifecycle_hooks.step_complete(context)
@@ -122,11 +129,26 @@ class EventProcessor:
         context.scenario = scenario
         context.result = result
 
-        event = ScenarioCompleteEvent(time=context.time, run=run, feature=feature, scenario=scenario, result=result)
-        self.send_events_to_listeners(event)
+        for test_event_listener in self.test_event_listeners:
+            self.event_listener_thread_pool_executor.submit(test_event_listener.scenario_complete, context)
 
         for test_lifecycle_hooks in self.test_lifecycle_hooks:
             test_lifecycle_hooks.scenario_complete(context)
+
+    def feature_iteration_complete(self, run: Run, feature: TestFeature, iteration_index: int,
+                                   result: list[ScenarioResult]):
+        context = Context()
+        context.time = datetime.now()
+        context.run = run
+        context.feature = feature
+        context.iteration_index = iteration_index
+        context.result = result
+
+        for test_event_listener in self.test_event_listeners:
+            self.event_listener_thread_pool_executor.submit(test_event_listener.feature_iteration_complete, context)
+
+        for test_lifecycle_hooks in self.test_lifecycle_hooks:
+            test_lifecycle_hooks.feature_iteration_complete(context)
 
     def feature_complete(self, run: Run, feature: TestFeature, result: FeatureResult):
         context = Context()
@@ -135,8 +157,8 @@ class EventProcessor:
         context.feature = feature
         context.result = result
 
-        event = FeatureCompleteEvent(time=context.time, run=run, feature=feature, result=result)
-        self.send_events_to_listeners(event)
+        for test_event_listener in self.test_event_listeners:
+            self.event_listener_thread_pool_executor.submit(test_event_listener.feature_complete, context)
 
         for test_lifecycle_hooks in self.test_lifecycle_hooks:
             test_lifecycle_hooks.feature_complete(context)
@@ -147,8 +169,8 @@ class EventProcessor:
         context.run = run
         context.result = result
 
-        event = RunCompleteEvent(time=context.time, run=run, result=result)
-        self.send_events_to_listeners(event)
+        for test_event_listener in self.test_event_listeners:
+            self.event_listener_thread_pool_executor.submit(test_event_listener.run_complete, context)
 
         for test_lifecycle_hooks in self.test_lifecycle_hooks:
             test_lifecycle_hooks.run_complete(context)

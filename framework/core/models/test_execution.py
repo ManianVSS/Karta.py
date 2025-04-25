@@ -10,7 +10,6 @@ class ResultNode(BaseModel):
     name: Optional[str] = None
     source: Optional[str] = None
     line_number: Optional[int] = 0
-    parent: 'Optional[ResultNode]' = None
 
 
 class StepResult(ResultNode):
@@ -48,13 +47,13 @@ class StepResult(ResultNode):
         self.successful = not self.error and self.successful and step_result.successful
 
 
-
 class ScenarioResult(ResultNode):
     start_time: Optional[datetime] = None
     end_time: Optional[datetime] = None
     successful: bool = True
     error: Optional[str] = None
     step_results: Optional[list[StepResult]] = []
+    iteration_index: Optional[int] = 1
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -76,8 +75,8 @@ class FeatureResult(ResultNode):
     end_time: Optional[datetime] = None
     successful: bool = True
     error: Optional[str] = None
-    scenario_results: Optional[list[ScenarioResult]] = []
-    _line_number: Optional[int] = 0
+    iterations_count: Optional[int] = 1
+    failed_iterations: Optional[list[int]] = []
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -85,13 +84,16 @@ class FeatureResult(ResultNode):
     def is_successful(self):
         return not self.error and self.successful
 
-    def add_scenario_result(self, scenario_result: ScenarioResult):
-        if self.scenario_results is None:
-            self.scenario_results = []
-        self.scenario_results.append(scenario_result)
+    def add_scenario_result(self, scenario_result: ScenarioResult, iteration_index: Optional[int] = 1):
         if not self.error:
             self.error = scenario_result.error
+        if not scenario_result.is_successful() and iteration_index not in self.failed_iterations:
+            self.failed_iterations.append(iteration_index)
         self.successful = not self.error and self.successful and scenario_result.successful
+
+    def add_iteration_result(self, scenario_results: list[ScenarioResult]):
+        for scenario_result in scenario_results:
+            self.add_scenario_result(scenario_result)
 
 
 class Run(BaseModel):
@@ -107,8 +109,6 @@ class Run(BaseModel):
 class RunResult(BaseModel):
     start_time: Optional[datetime] = None
     end_time: Optional[datetime] = None
-    successful: bool = True
-    error: Optional[str] = None
     feature_results: Optional[list[FeatureResult]] = []
 
     def __init__(self, **kwargs):
@@ -121,6 +121,3 @@ class RunResult(BaseModel):
         if self.feature_results is None:
             self.feature_results = []
         self.feature_results.append(feature_result)
-        if not self.error:
-            self.error = feature_result.error
-        self.successful = not self.error and self.successful and feature_result.successful

@@ -65,6 +65,10 @@ default_karta_config = KartaConfig(
                 }
             )
         ),
+        'KartaTestCatalogManager': PluginConfig(
+            module_name='framework.plugins.catalog',
+            class_name='KartaTestCatalogManager',
+        ),
         'LoggingTestLifecycleHook': PluginConfig(
             module_name='framework.plugins.listeners',
             class_name='LoggingTestLifecycleHook',
@@ -87,7 +91,7 @@ default_karta_config = KartaConfig(
         '.feature': 'KriyaGherkin',
         '.kriya': 'KriyaGherkin',
     },
-    test_catalog_manager='Kriya',
+    test_catalog_manager='KartaTestCatalogManager',
     test_lifecycle_hooks=['LoggingTestLifecycleHook', ],
     test_event_listeners=['JSONEventDumper', ],
 )

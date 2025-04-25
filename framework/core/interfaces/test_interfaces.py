@@ -1,4 +1,5 @@
 import abc
+from typing import Optional
 
 from framework.core.models.test_catalog import TestStep, TestFeature, TestScenario
 
@@ -31,7 +32,7 @@ class StepRunner(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
 
-class FeatureStore(metaclass=abc.ABCMeta):
+class TestCatalogManager(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def list_features(self) -> dict[str, TestFeature]:
         raise NotImplementedError
@@ -50,4 +51,13 @@ class FeatureStore(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def filter_with_tags(self, tags: set[str]) -> set[TestScenario]:
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def get_feature_for_scenario(self, scenario: TestScenario) -> Optional[TestFeature]:
+        """
+        Get the feature for a given scenario
+        :param scenario: The scenario to get the feature for
+        :return: The feature for the scenario
+        """
         raise NotImplementedError

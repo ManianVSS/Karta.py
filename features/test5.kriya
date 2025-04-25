@@ -12,6 +12,8 @@
    This feature description describes the feature.
    It is a multi line feature description.
    ```
+   Iterations: 100
+   IterationPolicy: one scenario per iteration
         
    # Comment for Background ## Background:
    Background:
@@ -82,6 +84,7 @@
             
    # Comment 1
    Example: My Scenario 1
+     Probability: 40%
      Given my sample step definition2
      If my condition 1 is met
      Steps:
@@ -97,6 +100,7 @@
    @my_scenario_tag4 @Smy_scenario_tag5
    @Smy_scenario_tag1
    Scenario: My Scenario 2
+     Probability: 60%
      Given my sample step definition1
      When my sample step definition2
      # sComment 1

@@ -1,11 +1,6 @@
 import abc
-from datetime import datetime
-from typing import Optional
 
-from pydantic import BaseModel
-
-from framework.core.models.test_catalog import TestFeature, TestScenario, TestStep
-from framework.core.models.test_execution import Run, RunResult, FeatureResult, ScenarioResult, StepResult
+from framework.core.models.generic import Context
 
 
 class DependencyInjector(metaclass=abc.ABCMeta):
@@ -24,115 +19,44 @@ class TestLifecycleHook(metaclass=abc.ABCMeta):
     """
 
     @abc.abstractmethod
-    def run_start(self, context: dict):
+    def run_start(self, context: Context):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def feature_start(self, context: dict):
+    def feature_start(self, context: Context):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def scenario_start(self, context: dict):
+    def feature_iteration_start(self, context: Context):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def step_start(self, context: dict):
+    def scenario_start(self, context: Context):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def step_complete(self, context: dict):
+    def step_start(self, context: Context):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def scenario_complete(self, context: dict):
+    def step_complete(self, context: Context):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def feature_complete(self, context: dict):
+    def scenario_complete(self, context: Context):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def run_complete(self, context: dict):
+    def feature_iteration_complete(self, context: Context):
         raise NotImplementedError
 
+    @abc.abstractmethod
+    def feature_complete(self, context: Context):
+        raise NotImplementedError
 
-class Event(BaseModel):
-    time: Optional[datetime] = None
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-
-class RunStartEvent(Event):
-    run: Optional[Run] = None
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-
-class FeatureStartEvent(Event):
-    run: Optional[Run] = None
-    feature: Optional[TestFeature] = None
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-
-class ScenarioStartEvent(Event):
-    run: Optional[Run] = None
-    feature: Optional[TestFeature] = None
-    scenario: Optional[TestScenario] = None
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-
-class StepStartEvent(Event):
-    run: Optional[Run] = None
-    feature: Optional[TestFeature] = None
-    scenario: Optional[TestScenario] = None
-    step: Optional[TestStep] = None
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-
-class StepCompleteEvent(Event):
-    run: Optional[Run] = None
-    feature: Optional[TestFeature] = None
-    scenario: Optional[TestScenario] = None
-    step: Optional[TestStep] = None
-    result: Optional[StepResult] = None
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-
-class ScenarioCompleteEvent(Event):
-    run: Optional[Run] = None
-    feature: Optional[TestFeature] = None
-    scenario: Optional[TestScenario] = None
-    result: Optional[ScenarioResult] = None
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-
-class FeatureCompleteEvent(Event):
-    run: Optional[Run] = None
-    feature: Optional[TestFeature] = None
-    result: Optional[FeatureResult] = None
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-
-class RunCompleteEvent(Event):
-    run: Optional[Run] = None
-    result: Optional[RunResult] = None
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    @abc.abstractmethod
+    def run_complete(self, context: Context):
+        raise NotImplementedError
 
 
 class TestEventListener(metaclass=abc.ABCMeta):
@@ -142,5 +66,41 @@ class TestEventListener(metaclass=abc.ABCMeta):
     """
 
     @abc.abstractmethod
-    def process_event(self, event: Event):
+    def run_start(self, context: Context):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def feature_start(self, context: Context):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def feature_iteration_start(self, context: Context):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def scenario_start(self, context: Context):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def step_start(self, context: Context):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def step_complete(self, context: Context):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def scenario_complete(self, context: Context):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def feature_iteration_complete(self, context: Context):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def feature_complete(self, context: Context):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def run_complete(self, context: Context):
         raise NotImplementedError

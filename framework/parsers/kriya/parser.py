@@ -310,8 +310,8 @@ class KriyaParser(object):
             background_steps = [*p[2]]
             del p.slice[2]
 
-        p[0] = TestFeature(name=p[1].strip(), description=description, setup_steps=background_steps, scenarios=p[2],
-                           tags=tags, )
+        p[0] = TestFeature(name=p[1].strip(), description=description, iterations=iterations,
+                           iteration_policy=iteration_policy, setup_steps=background_steps, scenarios=p[2], tags=tags, )
         p[0].line_number = p.slice[1].lineno
 
     def p_empty(self, p):
@@ -362,14 +362,14 @@ class KriyaParser(object):
             del p.slice[1]
 
         description = None
-        if p.slice[1].type == 'DOC_STRING':
-            description = p[1]
-            del p.slice[1]
+        if p.slice[2].type == 'DOC_STRING':
+            description = p[2]
+            del p.slice[2]
 
         probability = 1.0
-        if p.slice[1].type == 'PROBABILITY':
-            probability = p[1]
-            del p.slice[1]
+        if p.slice[2].type == 'PROBABILITY':
+            probability = p[2]
+            del p.slice[2]
 
         p[0] = TestScenario(name=p[1].strip(), steps=p[2], tags=tags, description=description, probability=probability)
         p[0].line_number = p.slice[1].lineno
@@ -559,123 +559,124 @@ class KriyaParser(object):
 
 
 if __name__ == '__main__':
-    data = r'''
-     # fComment 2
-     @MyTag1 @MyTag2
-     @MyTag3
-     /*
-        Multi line
-        comment for the 
-        feature
-        */
-    Feature: My feature        
-        """
-        This feature description describes the feature.
-        It is a multi line feature description.
-        """
+    data = r''' # fComment 2
+ @my_tag3 @my_tag4
+ @my_tag5
+  /*
+    Multi line
+    comment for the
+    feature
+  */
+ Feature: My feature 3
+    # Comment before description
+   ```
+   This feature description describes the feature.
+   It is a multi line feature description.
+   ```
+   Iterations: 100
+   IterationPolicy: one scenario per iteration
         
-         # Comment for Background ## Background:
-        Background:
-            Given background step1
-            And background step2
-            And background step3
-            {
-                table_data: [
-                    {
-                        f1: "v11",
-                       "f2\n\t": "v12",
-                        f3: "v13"
-                    },
-                    {
-                        f1: "v21",
-                       "f2\n\t": "v22",
-                        f3: "v23"
-                    }
-                ]
-            }
-            
-        # Comment 1
-      Example: My Scenario 1
-        
-        Given scenario 1 step 1
-        When scenario 1 step 2
-          # sComment 1
-        Then scenario 1 step 3
-        {
-                "\"key\":\n\t 3": 1,
-                key2: true,
-                key3: "\"string value\"\n\t",
-                key4: 10.3,
-                key5: ["this", "is","an","array","with", 7, "values"],
-                key6: {type:"Object value"},
-                
-                #Dynamic data
-                dyna_data1: $int_range(1, 10),
-                dyna_data2: $float_range(1.0, 10.0),
-                dyna_data3: $random_string(10),
-                dyna_data4: $one_from_list["this", "is","an","array","with", 7, "values"],
-                dyna_data5: $some_from_list["this", "is","an","array","with", 7, "values"],
-                dyna_data6: $one_from_map{
-                    %10: "dvalue1",
-                    %20: "dvalue2",
-                    %30: "dvalue3",
-                    %40: "dvalue4"
+   # Comment for Background ## Background:
+   Background:
+     Given my sample step definition1
+     And my sample step definition1
+     {
+            "\"key\":\n\t 3": 1,
+            key2: true,
+            key3: "\"string value\"\n\t",
+            key3: 10.3,
+            key5: ["this", "is","an","array","with", 7, "values"],
+            key6: {type:"Object value"},
+
+            #Dynamic data
+            dyna_data1: $int_range(1, 10),
+            dyna_data2: $float_range(1.0, 10.0),
+            dyna_data3: $random_string(10),
+            dyna_data4: $one_from_list["this", "is","an","array","with", 7, "values"],
+            dyna_data5: $some_from_list["this", "is","an","array","with", 7, "values"],
+            dyna_data6: $one_from_map{
+                %10: "dvalue1",
+                %20: "dvalue2",
+                %30: "dvalue3",
+                %40: "dvalue4"
+             },
+            dyna_data7: $some_from_map{
+                %10: "dsvalue1",
+                %20: "dsvalue2",
+                %30: "dsvalue3",
+                %40: "dsvalue4"
+             },
+             dyna_object:{
+                dyna_odata1: $int_range(1, 10),
+                dyna_odata2: $float_range(1.0, 10.0),
+                dyna_odata3: $random_string(10),
+                dyna_odata4: $one_from_list["this", "is","an","array","with", 7, "values"],
+                dyna_odata5: $some_from_list["this", "is","an","array","with", 7, "values"],
+                dyna_odata6: $one_from_map{
+                    %10: "dovalue1",
+                    %20: "dovalue2",
+                    %30: "dovalue3",
+                    %40: "dovalue4"
                  },
-                dyna_data7: $some_from_map{
-                    %10: "dsvalue1",
-                    %20: "dsvalue2",
-                    %30: "dsvalue3",
-                    %40: "dsvalue4"
-                 },
-                 dyna_object:{
-                    dyna_odata1: $int_range(1, 10),
-                    dyna_odata2: $float_range(1.0, 10.0),
-                    dyna_odata3: $random_string(10),
-                    dyna_odata4: $one_from_list["this", "is","an","array","with", 7, "values"],
-                    dyna_odata5: $some_from_list["this", "is","an","array","with", 7, "values"],
-                    dyna_odata6: $one_from_map{
-                        %10: "dovalue1",
-                        %20: "dovalue2",
-                        %30: "dovalue3",
-                        %40: "dovalue4"
-                     },
-                    dyna_odata7: $some_from_map{
-                        %10: "dosvalue1",
-                        %20: "dosvalue2",
-                        %30: "dosvalue3",
-                        %40: "dosvalue4"
-                     }
+                dyna_odata7: $some_from_map{
+                    %10: "dosvalue1",
+                    %20: "dosvalue2",
+                    %30: "dosvalue3",
+                    %40: "dosvalue4"
                  }
-        }
-        If my condition 1 is met
-        {
-               sample_value:1
-        }
-        Steps:
-        {
-            Given scenario 1 step 1
-            When scenario 1 step 2
-        }
+             }
+     }
+
+     And my sample step definition2
+     {
+        table_data: [
+            {
+                f1: "v11",
+               "f2\n\t": "v12",
+                f3: "v13"
+            },
+            {
+                f1: "v21",
+               "f2\n\t": "v22",
+                f3: "v23"
+            }
+        ]
+    }
+            
+   # Comment 1
+   Example: My Scenario 1
+     Probability: 40%
+     Given my sample step definition2
+     If my condition 1 is met
+     Steps:
+     {
+        Given my sample step definition1
+        And my sample step definition1
+     }
+     When my sample step definition3
+     # sComment 1
+     Then my sample step definition4
         
     # Comment 2
-    @SMyTag1 @SMyTag2
-     @SMyTag3
-      Scenario: My Scenario 2
-        Given scenario 2 step 1
-        When scenario 2 step 2
-          # sComment 1
-        Then scenario 2 step 3
-        And scenario 2 step 4
-        But scenario 2 step 5
-        While my condition 1 is met
-        {
-               sample_value:5
-        }
-        Steps:
-        {
-             Given scenario 2 step 1
-             When scenario 2 step 2
-        }
+   @my_scenario_tag4 @Smy_scenario_tag5
+   @Smy_scenario_tag1
+   Scenario: My Scenario 2
+     Probability: 60%
+     Given my sample step definition1
+     When my sample step definition2
+     # sComment 1
+     Then my sample step definition3
+     And my sample step definition4
+     But my sample step definition1
+     While my condition 2 is met
+     {
+           sample_value:5
+     }
+     Steps:
+     {
+        Given my sample step definition1
+        And my sample step definition1
+     }
     '''
 
     # # Give the lexer some input

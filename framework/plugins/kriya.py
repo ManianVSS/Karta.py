@@ -5,8 +5,8 @@ from typing import Union, Callable
 
 import yaml
 
-from framework.core.interfaces.test_interfaces import FeatureParser, StepRunner, FeatureStore
-from framework.core.models.test_catalog import TestFeature, TestStep, TestScenario
+from framework.core.interfaces.test_interfaces import FeatureParser, StepRunner
+from framework.core.models.test_catalog import TestFeature, TestStep
 from framework.core.utils import importutils
 from framework.core.utils.logger import logger
 from framework.parsers.kriya.parser import KriyaParser
@@ -36,12 +36,10 @@ When = step_def
 Then = step_def
 
 
-class Kriya(FeatureParser, StepRunner, FeatureStore):
+class Kriya(FeatureParser, StepRunner):
     dependency_injector = Inject()
 
     step_definition_mapping: dict[str, Callable] = {}
-    feature_map: dict[str, set[TestFeature]] = {}
-    scenario_map: dict[str, set[TestScenario]] = {}
 
     def __init__(self, feature_directory: str, step_def_package: str):
         self.feature_directory = feature_directory
@@ -94,56 +92,6 @@ class Kriya(FeatureParser, StepRunner, FeatureStore):
             message = "Step definition mapping for {} could not be found".format(step_to_call)
             return {}, False, message
 
-    def list_scenarios(self):
-        # catalog = {}
-        # for tag, scenarios in self.scenario_map.items():
-        #     catalog[tag] = []
-        #     for scenario in scenarios:
-        #         catalog[tag].append(scenario)
-        #         catalog[scenario.name] = scenario
-        return self.scenario_map
-
-    def list_features(self):
-        return self.feature_map
-
-    def add_features(self, features: list[TestFeature], ) -> bool:
-        for feature in features:
-            if feature.name not in self.feature_map.keys():
-                self.feature_map[feature.name] = set()
-            self.feature_map[feature.name].add(feature)
-            for tag in feature.tags:
-                if tag not in self.feature_map.keys():
-                    self.feature_map[tag] = set()
-                self.feature_map[tag].add(feature)
-                if tag not in self.scenario_map.keys():
-                    self.scenario_map[tag] = set()
-                for scenario in feature.scenarios:
-                    if scenario not in self.scenario_map[tag]:
-                        self.scenario_map[tag].add(scenario)
-
-            self.add_scenarios(feature.scenarios)
-        return True
-
-    def add_scenarios(self, scenarios: set[TestScenario], ) -> bool:
-        for scenario in scenarios:
-            if scenario.name not in self.scenario_map.keys():
-                self.scenario_map[scenario.name] = set()
-            self.scenario_map[scenario.name].add(scenario)
-            for tag in scenario.tags:
-                if tag not in self.scenario_map.keys():
-                    self.scenario_map[tag] = set()
-                if scenario not in self.scenario_map[tag]:
-                    self.scenario_map[tag].add(scenario)
-        return True
-
-    def filter_with_tags(self, tags: set[str]) -> set[TestScenario]:
-        filtered_scenarios = set()
-        for tag in tags:
-            if tag in self.scenario_map.keys():
-                filtered_scenarios.update(self.scenario_map[tag])
-
-        return filtered_scenarios
-
 
 class KriyaGherkinPlugin(FeatureParser):
     step_definition_mapping = {}
@@ -163,7 +111,7 @@ class KriyaGherkinPlugin(FeatureParser):
         with open(feature_file, "r") as stream:
             parsed_feature = self.parse_feature(stream.read())
             # str(Path(feature_file).resolve())
-            parsed_feature.source = feature_file
+            parsed_feature.set_source(feature_file)
             return parsed_feature
 
     def get_features(self, ) -> list[TestFeature]:

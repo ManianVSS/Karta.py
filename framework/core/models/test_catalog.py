@@ -1,59 +1,24 @@
 import itertools
 from enum import Enum
+from random import Random
 from typing import Optional, Dict
 
 from pydantic import BaseModel
 
 from framework.core.models.testdata import GeneratedObjectValue
+from framework.core.utils import randomization_utils
 
 
 class TestNode(BaseModel):
     name: Optional[str] = None
-    _source: Optional[str] = None
-    _line_number: Optional[int] = 0
-    _parent: 'Optional[TestNode]' = None
+    source: Optional[str] = None
+    line_number: Optional[int] = 0
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
     def __hash__(self):
         return id(self)
-
-    @property
-    def parent(self):
-        return self._parent
-
-    @parent.setter
-    def parent(self, value):
-        self._parent = value
-
-    @parent.deleter
-    def parent(self):
-        del self._parent
-
-    @property
-    def source(self):
-        return self._source
-
-    @source.setter
-    def source(self, value):
-        self._source = value
-
-    @source.deleter
-    def source(self):
-        del self._source
-
-    @property
-    def line_number(self):
-        return self._line_number
-
-    @line_number.setter
-    def line_number(self, value):
-        self._line_number = value
-
-    @line_number.deleter
-    def line_number(self):
-        del self._line_number
 
 
 class StepType(Enum):
@@ -73,14 +38,6 @@ class TestStep(TestNode):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    @TestNode.source.setter
-    def source(self, source: str):
-        self._source = source
-
-    @TestNode.parent.setter
-    def parent(self, parent: 'TestScenario|TestFeature'):
-        self._parent = parent
-
 
 class TestScenario(TestNode):
     description: Optional[str] = None
@@ -93,21 +50,24 @@ class TestScenario(TestNode):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        if 'source' in kwargs.keys():
-            self.source = kwargs['source']
-
-    @TestNode.source.setter
-    def source(self, source: str):
-        self._source = source
-
+    def set_source(self, source: str):
+        self.source = source
         for step in itertools.chain(self.setup_steps, self.steps, self.teardown_steps):
             step.source = source
 
-    @TestNode.parent.setter
-    def parent(self, parent: 'TestFeature'):
-        self._parent = parent
-        for step in itertools.chain(self.setup_steps, self.steps, self.teardown_steps):
-            step.parent = self
+    def validate_scenario(self) -> bool:
+        """
+        Check if the probability is between greater than 0 and less than equal to 1
+        """
+        if self.probability:
+            return 0 < self.probability <= 1
+        return True
+
+
+class IterationPolicy(Enum):
+    ALL_PER_ITERATION = "ALL_PER_ITERATION"
+    ONE_PER_ITERATION = "ONE_PER_ITERATION"
+    SOME_PER_ITERATION = "SOME_PER_ITERATION"
 
 
 class TestFeature(TestNode):
@@ -115,43 +75,50 @@ class TestFeature(TestNode):
     tags: Optional[set[str]] = None
     setup_steps: Optional[list[TestStep]] = []
     scenarios: set[TestScenario]
-    number_of_iterations: Optional[int] = 1
+    iterations: Optional[int] = 1
+    iteration_policy: Optional[IterationPolicy] = IterationPolicy.ALL_PER_ITERATION
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        if 'source' in kwargs.keys():
-            self.source = kwargs['source']
+    def set_source(self, source: str):
+        self.source = source
+        for scenario in self.scenarios:
+            scenario.set_source(source)
 
-        self.set_parent()
+    def get_scenario_by_name(self, name: str) -> Optional[TestScenario]:
+        return next((scenario for scenario in self.scenarios if scenario.name == name), None)
 
-    @TestNode.source.setter
-    def source(self, source: str):
-        self._source = source
+    def validate_feature(self) -> bool:
+        """
+        Validate the feature to check the following
+        If iteration policy is one per iteration, check if the sum of all probability valeus of scenarios is equal to 1
+        If iteration policy is some or All per iteration, check if every scenario is valid.
+        :return:
+        """
+        if not self.scenarios:
+            return False
 
-        if self.setup_steps:
-            for setup_step in self.setup_steps:
-                setup_step.source = source
+        if self.iteration_policy == IterationPolicy.ALL_PER_ITERATION:
+            return True
+        elif self.iteration_policy == IterationPolicy.SOME_PER_ITERATION:
+            return all(scenario.validate_scenario() for scenario in self.scenarios)
+        elif self.iteration_policy == IterationPolicy.ONE_PER_ITERATION:
+            return round(sum(scenario.probability if scenario.probability else 1.0 for scenario in self.scenarios),
+                         2) == 1.0
+        else:
+            raise NotImplemented(f"Iteration policy {self.iteration_policy} is not implemented.")
 
-        if self.scenarios:
-            for scenario in self.scenarios:
-                scenario.source = source
-
-    def set_parent(self):
-
-        if self.setup_steps:
-            for setup_step in self.setup_steps:
-                setup_step.parent = self
-
-        if self.scenarios:
-            for scenario in self.scenarios:
-                scenario.parent = self
-
-
-class IterationPolicy(Enum):
-    ALL_PER_ITERATION = "ALL_PER_ITERATION"
-    ONE_PER_ITERATION = "ONE_PER_ITERATION"
-    SOME_PER_ITERATION = "SOME_PER_ITERATION"
+    # noinspection PyTypeChecker
+    def get_next_iteration_scenarios(self, random: Random) -> list[TestScenario]:
+        if self.iteration_policy == IterationPolicy.ALL_PER_ITERATION:
+            return list(self.scenarios)
+        elif self.iteration_policy == IterationPolicy.ONE_PER_ITERATION:
+            return [randomization_utils.generate_next_mutex_composition_from_objects(self.scenarios, random)]
+        elif self.iteration_policy == IterationPolicy.SOME_PER_ITERATION:
+            return randomization_utils.generate_next_composition_from_objects(self.scenarios, random)
+        else:
+            raise NotImplemented(f"Iteration policy {self.iteration_policy} is not implemented.")
 
 
 class FeatureExecutionProfile(BaseModel):

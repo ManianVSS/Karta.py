@@ -24,6 +24,10 @@ plugins:
       kwargs:
         feature_directory: features
 
+  KartaTestCatalogManager:
+    module_name: framework.plugins.catalog
+    class_name: KartaTestCatalogManager
+
   LoggingTestLifecycleHook:
     module_name: framework.plugins.listeners
     class_name: LoggingTestLifecycleHook
@@ -47,7 +51,7 @@ parser_map:
   .kriya: KriyaGherkin
 
 #Test Catalog Manager plugin name
-test_catalog_manager: Kriya
+test_catalog_manager: KartaTestCatalogManager
 
 test_lifecycle_hooks:
   - LoggingTestLifecycleHook
