@@ -12,35 +12,36 @@ class LoggingTestLifecycleHook(TestLifecycleHook):
         super().__init__()
 
     def run_start(self, context: Context):
-        logger.info("run started: %s", str(context.run.name))
+        logger.info("run started: %s", str(context.run_info.run))
 
     def feature_start(self, context: Context):
-        logger.info("feature started: %s", str(context.feature.name))
+        logger.info("feature started: %s", str(context.run_info.feature))
 
     def feature_iteration_start(self, context: Context):
-        logger.info("feature iteration started: %s[%i]", str(context.feature.name), int(context.iteration_index))
+        logger.info("feature iteration started: %s[%i]", str(context.run_info.feature),
+                    int(context.run_info.iteration_index))
 
     def scenario_start(self, context: Context):
-        logger.info("scenario started: %s", str(context.scenario.name))
+        logger.info("scenario started: %s", str(context.run_info.scenario))
 
     def step_start(self, context: Context):
-        logger.info("step started: %s", str(context.step.name))
+        logger.info("step started: %s", str(context.run_info.step))
 
     def step_complete(self, context: Context):
-        logger.info("step complete: %s: %s", str(context.step.name), str(context.result))
+        logger.info("step complete: %s: %s", str(context.run_info.step), str(context.run_info.result))
 
     def scenario_complete(self, context: Context):
-        logger.info("scenario complete: %s: %s", str(context.scenario.name), str(context.result))
+        logger.info("scenario complete: %s: %s", str(context.run_info.scenario), str(context.run_info.result))
 
     def feature_iteration_complete(self, context: Context):
-        logger.info("feature iteration completed: %s[%i]: %s", str(context.feature.name), int(context.iteration_index),
-                    str(context.result))
+        logger.info("feature iteration completed: %s[%i]: %s", str(context.run_info.feature),
+                    int(context.run_info.iteration_index), str(context.run_info.result))
 
     def feature_complete(self, context: Context):
-        logger.info("feature complete: %s: %s", str(context.feature.name), str(context.result))
+        logger.info("feature complete: %s: %s", str(context.run_info.feature), str(context.run_info.result))
 
     def run_complete(self, context: Context):
-        logger.info("run complete: %s: %s", str(context.run.name), str(context.result))
+        logger.info("run complete: %s: %s", str(context.run_info.run), str(context.run_info.result))
 
 
 class DumpToJSONEventListener(TestEventListener):
@@ -53,8 +54,8 @@ class DumpToJSONEventListener(TestEventListener):
         self.event_data.append(
             {
                 'type': "run_start",
-                'run': context.run.name,
-                'tags': context.run.tags,
+                'run': context.run,
+                'tags': context.tags,
             }
         )
 
@@ -62,8 +63,8 @@ class DumpToJSONEventListener(TestEventListener):
         self.event_data.append(
             {
                 'type': 'feature_start',
-                'run': context.run.name,
-                'feature': context.feature.name,
+                'run': context.run,
+                'feature': context.feature,
             }
         )
 
@@ -71,10 +72,10 @@ class DumpToJSONEventListener(TestEventListener):
         self.event_data.append(
             {
                 'type': 'feature_iteration_start',
-                'run': context.run.name,
-                'feature': context.feature.name,
+                'run': context.run,
+                'feature': context.feature,
                 'index': context.iteration_index,
-                'scenarios': [scenario.name for scenario in context.scenarios],
+                'scenarios': context.scenarios,
             }
         )
 
@@ -82,9 +83,9 @@ class DumpToJSONEventListener(TestEventListener):
         self.event_data.append(
             {
                 'type': 'scenario_start',
-                'run': context.run.name,
-                'feature': context.feature.name,
-                'sceanario': context.scenario.name,
+                'run': context.run,
+                'feature': context.feature,
+                'sceanario': context.scenario,
             }
         )
 
@@ -92,10 +93,10 @@ class DumpToJSONEventListener(TestEventListener):
         self.event_data.append(
             {
                 'type': 'step_start',
-                'run': context.run.name,
-                'feature': context.feature.name,
-                'sceanario': context.scenario.name,
-                'step': context.step.name,
+                'run': context.run,
+                'feature': context.feature,
+                'sceanario': context.scenario,
+                'step': context.step,
             }
         )
 
@@ -103,10 +104,10 @@ class DumpToJSONEventListener(TestEventListener):
         self.event_data.append(
             {
                 'type': 'step_complete',
-                'run': context.run.name,
-                'feature': context.feature.name,
-                'sceanario': context.scenario.name,
-                'step': context.step.name,
+                'run': context.run,
+                'feature': context.feature,
+                'sceanario': context.scenario,
+                'step': context.step,
                 'result': context.result.model_dump(),
             }
         )
@@ -115,9 +116,9 @@ class DumpToJSONEventListener(TestEventListener):
         self.event_data.append(
             {
                 'type': 'scenario_complete',
-                'run': context.run.name,
-                'feature': context.feature.name,
-                'sceanario': context.scenario.name,
+                'run': context.run,
+                'feature': context.feature,
+                'sceanario': context.scenario,
                 'result': context.result.model_dump(),
             }
         )
@@ -126,8 +127,8 @@ class DumpToJSONEventListener(TestEventListener):
         self.event_data.append(
             {
                 'type': 'feature_iteration_complete',
-                'run': context.run.name,
-                'feature': context.feature.name,
+                'run': context.run,
+                'feature': context.feature,
                 'index': context.iteration_index,
                 'result': [scenario_result.model_dump() for scenario_result in context.result],
             }
@@ -137,8 +138,8 @@ class DumpToJSONEventListener(TestEventListener):
         self.event_data.append(
             {
                 'type': 'feature_complete',
-                'run': context.run.name,
-                'feature': context.feature.name,
+                'run': context.run,
+                'feature': context.feature,
                 'result': context.result.model_dump(),
             }
         )
@@ -147,7 +148,7 @@ class DumpToJSONEventListener(TestEventListener):
         self.event_data.append(
             {
                 'type': 'run_complete',
-                'run': context.run.name,
+                'run': context.run,
                 'result': context.result.model_dump(),
             }
         )

@@ -54,6 +54,7 @@ parser_map:
 test_catalog_manager: KartaTestCatalogManager
 
 test_lifecycle_hooks:
+  - Kriya
   - LoggingTestLifecycleHook
 
 test_event_listeners:

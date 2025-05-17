@@ -35,7 +35,7 @@ def get_plugin_from_config(plugin_config):
 class KartaRuntime:
     random: Random = Random()
     config: KartaConfig = default_karta_config
-    properties: dict[str, object] = {}
+    properties: Context = Context()
     dependency_injector: DependencyInjector = None
     plugins: dict[str, Union[StepRunner, FeatureParser, DependencyInjector, TestCatalogManager]] = {}
     step_runners: list[StepRunner] = []
@@ -70,7 +70,7 @@ class KartaRuntime:
         self.load_event_processor()
 
     def load_properties(self):
-        self.properties = {}
+        self.properties = Context()
         if self.config.property_files:
             for property_file_name in self.config.property_files:
                 properties_read = read_properties(property_file_name)
@@ -162,8 +162,8 @@ class KartaRuntime:
             steps.extend(step_runner.get_steps())
         return steps
 
-    def run_step(self, run: Run, feature: TestFeature, scenario: TestScenario, step: TestStep,
-                 context: Context) -> Union[StepResult, bool]:
+    def run_step(self, run: Run, feature: TestFeature, iteration_index: int, scenario: TestScenario, step: TestStep,
+                 scenario_context: Context) -> Union[StepResult, bool]:
         # logger.info('Running step %s', str(step.name))
         step_result = StepResult(name=step.name, )
         step_result.source = step.source
@@ -173,10 +173,10 @@ class KartaRuntime:
         step_runner = self.find_step_runner_for_step(step.name.strip())
         if step_runner is None:
             raise Exception("Unimplemented step: " + step.name)
-        self.event_processor.step_start(run, feature, scenario, step)
-        context.step_data = step.data_rules.generate_next_value(self.random) if step.data_rules else {}
+        self.event_processor.step_start(run, feature, iteration_index, scenario, step, scenario_context)
+        scenario_context.step_data = step.data_rules.generate_next_value(self.random) if step.data_rules else {}
 
-        step_return = step_runner.run_step(step, context)
+        step_return = step_runner.run_step(step, scenario_context)
 
         if step.type == StepType.STEP:
             step_result_data = {}
@@ -195,14 +195,15 @@ class KartaRuntime:
                 else:
                     raise Exception("Unprocessable result type: ", type(step_result))
             if step_result_data and len(step_result_data) > 0:
-                context.data.update(step_result_data)
+                scenario_context.data.update(step_result_data)
             step_result.results = step_result_data
 
         if step.type == StepType.CONDITION:
             if step_return:
                 for nested_step in step.steps:
                     try:
-                        nested_step_result = self.run_step(run, feature, scenario, nested_step, context)
+                        nested_step_result = self.run_step(run, feature, iteration_index, scenario, nested_step,
+                                                           scenario_context)
                         step_result.add_step_result(nested_step_result)
                         if not nested_step_result.is_successful():
                             break
@@ -215,7 +216,8 @@ class KartaRuntime:
             while step_return:
                 for nested_step in step.steps:
                     try:
-                        nested_step_result = self.run_step(run, feature, scenario, nested_step, context)
+                        nested_step_result = self.run_step(run, feature, iteration_index, scenario, nested_step,
+                                                           scenario_context)
                         step_result.add_step_result(nested_step_result)
                         if not nested_step_result.is_successful():
                             break
@@ -223,25 +225,26 @@ class KartaRuntime:
                         step_result.successful = False
                         step_result.error = str(e) + "\n" + traceback.format_exc()
                         break
-                step_return = step_runner.run_step(step, context)
+                step_return = step_runner.run_step(step, scenario_context)
 
         step_result.end_time = datetime.now()
-        self.event_processor.step_complete(run, feature, scenario, step, step_result)
+        self.event_processor.step_complete(run, feature, iteration_index, scenario, step, step_result, scenario_context)
         return step_result
 
-    def run_scenario(self, run: Run, feature: TestFeature, scenario: TestScenario, ):
+    def run_scenario(self, run: Run, feature: TestFeature, iteration_index: int, scenario: TestScenario,
+                     feature_context: Context, ):
         scenario_result = ScenarioResult(name=scenario.name, )
         scenario_result.source = scenario.source
         scenario_result.line_number = scenario.line_number
         scenario_result.start_time = datetime.now()
-        context = Context()
-        context.data = {}
-        context.properties = deepcopy(self.properties)
-        self.event_processor.scenario_start(run, feature, scenario)
+        scenario_context = feature_context.create_copy()
+        scenario_context.data = {}
+        scenario_context.properties = self.properties.create_copy()
+        self.event_processor.scenario_start(run, feature, iteration_index, scenario, scenario_context)
         # logger.info('Running scenario %s', str(scenario.name))
         for step in itertools.chain(feature.setup_steps, scenario.steps):
             try:
-                step_result = self.run_step(run, feature, scenario, step, context)
+                step_result = self.run_step(run, feature, iteration_index, scenario, step, scenario_context)
                 scenario_result.add_step_result(step_result)
                 if not step_result.is_successful():
                     break
@@ -250,10 +253,11 @@ class KartaRuntime:
                 scenario_result.error = str(e) + "\n" + traceback.format_exc()
                 break
         scenario_result.end_time = datetime.now()
-        self.event_processor.scenario_complete(run, feature, scenario, scenario_result)
+        self.event_processor.scenario_complete(run, feature, iteration_index, scenario, scenario_result,
+                                               scenario_context)
         return scenario_result
 
-    def run_scenarios(self, run: Run, scenarios: set[TestScenario]) -> RunResult:
+    def run_scenarios(self, run: Run, scenarios: set[TestScenario], run_context: Context, ) -> RunResult:
         feature_to_scenario_map: dict[TestFeature, set[TestScenario]] = {}
         run_result = RunResult()
         run_result.start_time = datetime.now()
@@ -270,39 +274,42 @@ class KartaRuntime:
             feature_result.source = feature.source
             feature_result.line_number = feature.line_number
             feature_result.start_time = datetime.now()
+            feature_context = run_context.create_copy()
             # logger.info('Running feature %s', str(feature.name))
-            self.event_processor.feature_start(run, feature)
+            self.event_processor.feature_start(run, feature, feature_context)
             for scenario in feature_to_scenario_map[feature]:
-                scenario_result = self.run_scenario(run, feature, scenario, )
+                scenario_result = self.run_scenario(run, feature, 0, scenario, feature_context)
                 feature_result.add_scenario_result(scenario_result)
             feature_result.end_time = datetime.now()
             run_result.add_feature_result(feature_result)
-            self.event_processor.feature_complete(run, feature, feature_result)
+            self.event_processor.feature_complete(run, feature, feature_result, feature_context)
 
         run_result.end_time = datetime.now()
         return run_result
 
-    def run_feature(self, run: Run, feature: TestFeature, ) -> FeatureResult:
+    def run_feature(self, run: Run, feature: TestFeature, run_context: Context, ) -> FeatureResult:
         feature_result = FeatureResult(name=feature.name)
         feature_result.source = feature.source
         feature_result.line_number = feature.line_number
         feature_result.start_time = datetime.now()
         feature_result.iterations_count = feature.iterations
 
-        self.event_processor.feature_start(run, feature)
+        feature_context = run_context.create_copy()
+
+        self.event_processor.feature_start(run, feature, feature_context)
         for index in range(feature.iterations):
             logger.info('Running feature {} iteration {}'.format(feature.name, index))
             scenarios = feature.get_next_iteration_scenarios(random=self.random)
-            self.event_processor.feature_iteration_start(run, feature, index, scenarios)
+            self.event_processor.feature_iteration_start(run, feature, index, scenarios, feature_context)
             iteration_results = []
             for scenario in scenarios:
-                scenario_result = self.run_scenario(run, feature, scenario, )
+                scenario_result = self.run_scenario(run, feature, index, scenario, feature_context)
                 iteration_results.append(scenario_result)
                 feature_result.add_scenario_result(scenario_result, index)
-            self.event_processor.feature_iteration_complete(run, feature, index, iteration_results)
+            self.event_processor.feature_iteration_complete(run, feature, index, iteration_results, feature_context)
 
         feature_result.end_time = datetime.now()
-        self.event_processor.feature_complete(run, feature, feature_result)
+        self.event_processor.feature_complete(run, feature, feature_result, feature_context)
 
         return feature_result
 
@@ -316,7 +323,9 @@ class KartaRuntime:
         run = Run(name=run_name, description=run_description)
         run_result = RunResult()
         run_result.start_time = datetime.now()
-        self.event_processor.run_start(run)
+        run_context = Context()
+
+        self.event_processor.run_start(run, run_context)
 
         for feature_file in feature_files:
             feature_file_extn = pathlib.Path(feature_file).suffix
@@ -324,10 +333,10 @@ class KartaRuntime:
                 raise Exception("Unknown feature file type")
             feature = self.parser_map[feature_file_extn].parse_feature_file(feature_file)
             run.scenarios.update(feature.scenarios)
-            feature_results = self.run_feature(run, feature)
+            feature_results = self.run_feature(run, feature, run_context)
             run_result.add_feature_result(feature_results)
 
-        self.event_processor.run_complete(run, run_result)
+        self.event_processor.run_complete(run, run_result, run_context)
         return run_result
 
     def filter_with_tags(self, tags: set[str]) -> set[TestScenario]:
@@ -339,10 +348,11 @@ class KartaRuntime:
         if not run_description:
             run_description = run_name
         filtered_scenarios = self.filter_with_tags(tags)
+        run_context = Context()
         run = Run(name=run_name, description=run_description, tags=tags, scenarios=filtered_scenarios)
-        self.event_processor.run_start(run)
-        run_result = self.run_scenarios(run, filtered_scenarios)
-        self.event_processor.run_complete(run, run_result)
+        self.event_processor.run_start(run, run_context)
+        run_result = self.run_scenarios(run, filtered_scenarios, run_context)
+        self.event_processor.run_complete(run, run_result, run_context)
         return run_result
 
 

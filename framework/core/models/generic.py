@@ -1,4 +1,5 @@
 import json
+from copy import deepcopy
 from pathlib import Path
 from typing import Optional
 
@@ -15,13 +16,10 @@ class VarClass(dict):
         self[name] = value
         return value
 
-    def __getattribute__(self, name):
-        if name in dict.__dict__.keys():
-            return super().__getattribute__(name)
-        elif name in self.keys():
+    def __getattr__(self, name):
+        if name in self.keys():
             return self[name]
-        else:
-            return None
+        raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
 
     def load_from_json(self, json_string: str):
         self.update(json.loads(json_string))
@@ -37,15 +35,42 @@ class VarClass(dict):
 
         return replaced_string
 
+    def create_copy(self):
+        copied_object = VarClass()
+        for key, value in self.items():
+            if isinstance(value, VarClass):
+                copied_object[key] = value.create_copy()
+            else:
+                copied_object[key] = deepcopy(value)
+        return copied_object
+
 
 class Context(VarClass):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+    def create_copy(self):
+        copied_object = Context()
+        for key, value in self.items():
+            if isinstance(value, VarClass):
+                copied_object[key] = value.create_copy()
+            else:
+                copied_object[key] = deepcopy(value)
+        return copied_object
+
 
 class TestProperties(VarClass):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+    def create_copy(self):
+        copied_object = TestProperties()
+        for key, value in self.items():
+            if isinstance(value, VarClass):
+                copied_object[key] = value.create_copy()
+            else:
+                copied_object[key] = deepcopy(value)
+        return copied_object
 
 
 class FunctionArgs(BaseModel):

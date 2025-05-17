@@ -41,136 +41,230 @@ class EventProcessor:
     def stop(self):
         self.__exit__(None, None, None)
 
-    def run_start(self, run: Run):
-        context = Context()
-        context.time = datetime.now()
-        context.run = run
+    def run_start(self, run: Run, run_context: Context):
+        run_info = Context()
+        run_info.time = datetime.now()
+        run_info.run = run
+        run_context.run_info = run_info
 
+        # Create a separte event context for event listeners to avoid thead safety issues
+        event_context = Context({
+            'time': run_info.time,
+            'run': run.name,
+            'tags': run.tags,
+        })
         for test_event_listener in self.test_event_listeners:
-            self.event_listener_thread_pool_executor.submit(test_event_listener.run_start, context)
+            self.event_listener_thread_pool_executor.submit(test_event_listener.run_start, event_context)
 
         for test_lifecycle_hooks in self.test_lifecycle_hooks:
-            test_lifecycle_hooks.run_start(context)
+            test_lifecycle_hooks.run_start(run_context)
 
-    def feature_start(self, run: Run, feature: TestFeature):
-        context = Context()
-        context.time = datetime.now()
-        context.run = run
-        context.feature = feature
+    def feature_start(self, run: Run, feature: TestFeature, feature_context: Context):
+        run_info = Context()
+        run_info.time = datetime.now()
+        run_info.run = run
+        run_info.feature = feature
+        feature_context.run_info = run_info
 
+        event_context = Context({
+            'time': run_info.time,
+            'run': run.name,
+            'feature': feature.name,
+        })
         for test_event_listener in self.test_event_listeners:
-            self.event_listener_thread_pool_executor.submit(test_event_listener.feature_start, context)
+            self.event_listener_thread_pool_executor.submit(test_event_listener.feature_start,
+                                                            event_context)
 
         for test_lifecycle_hooks in self.test_lifecycle_hooks:
-            test_lifecycle_hooks.feature_start(context)
+            test_lifecycle_hooks.feature_start(feature_context)
 
     def feature_iteration_start(self, run: Run, feature: TestFeature, iteration_index: int,
-                                scenarios: list[TestScenario]):
-        context = Context()
-        context.time = datetime.now()
-        context.run = run
-        context.feature = feature
-        context.iteration_index = iteration_index
-        context.scenarios = scenarios
+                                scenarios: list[TestScenario], feature_context: Context):
+        run_info = Context()
+        run_info.time = datetime.now()
+        run_info.run = run
+        run_info.feature = feature
+        run_info.iteration_index = iteration_index
+        run_info.scenarios = scenarios
+        feature_context.run_info = run_info
 
+        event_context = Context({
+            'time': run_info.time,
+            'run': run.name,
+            'feature': feature.name,
+            'iteration_index': iteration_index,
+            'scenarios': [scenario.name for scenario in scenarios],
+        })
         for test_event_listener in self.test_event_listeners:
-            self.event_listener_thread_pool_executor.submit(test_event_listener.feature_iteration_start, context)
+            self.event_listener_thread_pool_executor.submit(test_event_listener.feature_iteration_start,
+                                                            event_context)
 
         for test_lifecycle_hooks in self.test_lifecycle_hooks:
-            test_lifecycle_hooks.feature_iteration_start(context)
+            test_lifecycle_hooks.feature_iteration_start(feature_context)
 
-    def scenario_start(self, run: Run, feature: TestFeature, scenario: TestScenario):
-        context = Context()
-        context.time = datetime.now()
-        context.run = run
-        context.feature = feature
-        context.scenario = scenario
+    def scenario_start(self, run: Run, feature: TestFeature, iteration_index: int, scenario: TestScenario,
+                       scenario_context: Context):
+        run_info = Context()
+        run_info.time = datetime.now()
+        run_info.run = run
+        run_info.feature = feature
+        run_info.iteration_index = iteration_index
+        run_info.scenario = scenario
+        scenario_context.run_info = run_info
 
+        event_context = Context({
+            'time': run_info.time,
+            'run': run.name,
+            'feature': feature.name,
+            'iteration_index': iteration_index,
+            'scenario': scenario.name,
+        })
         for test_event_listener in self.test_event_listeners:
-            self.event_listener_thread_pool_executor.submit(test_event_listener.scenario_start, context)
+            self.event_listener_thread_pool_executor.submit(test_event_listener.scenario_start,
+                                                            event_context)
 
         for test_lifecycle_hooks in self.test_lifecycle_hooks:
-            test_lifecycle_hooks.scenario_start(context)
+            test_lifecycle_hooks.scenario_start(scenario_context)
 
-    def step_start(self, run: Run, feature: TestFeature, scenario: TestScenario, step: TestStep):
-        context = Context()
-        context.time = datetime.now()
-        context.run = run
-        context.feature = feature
-        context.scenario = scenario
-        context.step = step
+    def step_start(self, run: Run, feature: TestFeature, iteration_index: int, scenario: TestScenario, step: TestStep,
+                   scenario_context: Context):
+        run_info = Context()
+        run_info.time = datetime.now()
+        run_info.run = run
+        run_info.feature = feature
+        run_info.iteration_index = iteration_index
+        run_info.scenario = scenario
+        run_info.step = step
+        scenario_context.run_info = run_info
 
+        event_context = Context({
+            'time': run_info.time,
+            'run': run.name,
+            'feature': feature.name,
+            'iteration_index': iteration_index,
+            'scenario': scenario.name,
+            'step': step.name,
+        })
         for test_event_listener in self.test_event_listeners:
-            self.event_listener_thread_pool_executor.submit(test_event_listener.step_start, context)
+            self.event_listener_thread_pool_executor.submit(test_event_listener.step_start,
+                                                            event_context)
 
         for test_lifecycle_hooks in self.test_lifecycle_hooks:
-            test_lifecycle_hooks.step_start(context)
+            test_lifecycle_hooks.step_start(scenario_context)
 
-    def step_complete(self, run: Run, feature: TestFeature, scenario: TestScenario, step: TestStep, result: StepResult):
-        context = Context()
-        context.time = datetime.now()
-        context.run = run
-        context.feature = feature
-        context.scenario = scenario
-        context.step = step
-        context.result = result
+    def step_complete(self, run: Run, feature: TestFeature, iteration_index: int, scenario: TestScenario,
+                      step: TestStep, result: StepResult, scenario_context: Context):
+        run_info = Context()
+        run_info.time = datetime.now()
+        run_info.run = run
+        run_info.feature = feature
+        run_info.iteration_index = iteration_index
+        run_info.scenario = scenario
+        run_info.step = step
+        run_info['result'] = result
+        scenario_context.run_info = run_info
 
+        event_context = Context({
+            'time': run_info.time,
+            'run': run.name,
+            'feature': feature.name,
+            'iteration_index': iteration_index,
+            'scenario': scenario.name,
+            'step': step.name,
+            'result': result,
+        })
         for test_event_listener in self.test_event_listeners:
-            self.event_listener_thread_pool_executor.submit(test_event_listener.step_complete, context)
+            self.event_listener_thread_pool_executor.submit(test_event_listener.step_complete,
+                                                            event_context)
 
         for test_lifecycle_hooks in self.test_lifecycle_hooks:
-            test_lifecycle_hooks.step_complete(context)
+            test_lifecycle_hooks.step_complete(scenario_context)
 
-    def scenario_complete(self, run: Run, feature: TestFeature, scenario: TestScenario, result: ScenarioResult):
-        context = Context()
-        context.time = datetime.now()
-        context.run = run
-        context.feature = feature
-        context.scenario = scenario
-        context.result = result
+    def scenario_complete(self, run: Run, feature: TestFeature, iteration_index: int, scenario: TestScenario,
+                          result: ScenarioResult, scenario_context: Context):
+        run_info = Context()
+        run_info.time = datetime.now()
+        run_info.run = run
+        run_info.feature = feature
+        run_info.iteration_index = iteration_index
+        run_info.scenario = scenario
+        run_info.result = result
+        scenario_context.run_info = run_info
 
+        event_context = Context({
+            'time': run_info.time,
+            'run': run.name,
+            'feature': feature.name,
+            'iteration_index': iteration_index,
+            'scenario': scenario.name,
+            'result': result,
+        })
         for test_event_listener in self.test_event_listeners:
-            self.event_listener_thread_pool_executor.submit(test_event_listener.scenario_complete, context)
+            self.event_listener_thread_pool_executor.submit(test_event_listener.scenario_complete,
+                                                            event_context)
 
         for test_lifecycle_hooks in self.test_lifecycle_hooks:
-            test_lifecycle_hooks.scenario_complete(context)
+            test_lifecycle_hooks.scenario_complete(scenario_context)
 
     def feature_iteration_complete(self, run: Run, feature: TestFeature, iteration_index: int,
-                                   result: list[ScenarioResult]):
-        context = Context()
-        context.time = datetime.now()
-        context.run = run
-        context.feature = feature
-        context.iteration_index = iteration_index
-        context.result = result
+                                   result: list[ScenarioResult], feature_context: Context):
+        run_info = Context()
+        run_info.time = datetime.now()
+        run_info.run = run
+        run_info.feature = feature
+        run_info.iteration_index = iteration_index
+        run_info.result = result
+        feature_context.run_info = run_info
 
+        event_context = Context({
+            'time': run_info.time,
+            'run': run.name,
+            'feature': feature.name,
+            'iteration_index': iteration_index,
+            'result': result,
+        })
         for test_event_listener in self.test_event_listeners:
-            self.event_listener_thread_pool_executor.submit(test_event_listener.feature_iteration_complete, context)
+            self.event_listener_thread_pool_executor.submit(test_event_listener.feature_iteration_complete,
+                                                            event_context)
 
         for test_lifecycle_hooks in self.test_lifecycle_hooks:
-            test_lifecycle_hooks.feature_iteration_complete(context)
+            test_lifecycle_hooks.feature_iteration_complete(feature_context)
 
-    def feature_complete(self, run: Run, feature: TestFeature, result: FeatureResult):
-        context = Context()
-        context.time = datetime.now()
-        context.run = run
-        context.feature = feature
-        context.result = result
+    def feature_complete(self, run: Run, feature: TestFeature, result: FeatureResult, feature_context: Context):
+        run_info = Context()
+        run_info.time = datetime.now()
+        run_info.run = run
+        run_info.feature = feature
+        run_info.result = result
+        feature_context.run_info = run_info
 
+        event_context = Context({
+            'time': run_info.time,
+            'run': run.name,
+            'feature': feature.name,
+            'result': result,
+        })
         for test_event_listener in self.test_event_listeners:
-            self.event_listener_thread_pool_executor.submit(test_event_listener.feature_complete, context)
+            self.event_listener_thread_pool_executor.submit(test_event_listener.feature_complete,
+                                                            event_context)
 
         for test_lifecycle_hooks in self.test_lifecycle_hooks:
-            test_lifecycle_hooks.feature_complete(context)
+            test_lifecycle_hooks.feature_complete(feature_context)
 
-    def run_complete(self, run: Run, result: RunResult):
-        context = Context()
-        context.time = datetime.now()
-        context.run = run
-        context.result = result
+    def run_complete(self, run: Run, result: RunResult, run_context: Context):
+        run_info = Context()
+        run_info.time = datetime.now()
+        run_info.run = run
+        run_info.result = result
+        run_context.run_info = run_info
 
+        event_context = Context({
+            'time': run_info.time,
+            'run': run.name,
+            'result': result,
+        })
         for test_event_listener in self.test_event_listeners:
-            self.event_listener_thread_pool_executor.submit(test_event_listener.run_complete, context)
+            self.event_listener_thread_pool_executor.submit(test_event_listener.run_complete, event_context)
 
         for test_lifecycle_hooks in self.test_lifecycle_hooks:
-            test_lifecycle_hooks.run_complete(context)
+            test_lifecycle_hooks.run_complete(run_context)

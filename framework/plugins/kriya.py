@@ -1,11 +1,14 @@
 import itertools
+import re
 import traceback
 from pathlib import Path
 from typing import Union, Callable
 
 import yaml
 
+from framework.core.interfaces.lifecycle import TestLifecycleHook
 from framework.core.interfaces.test_interfaces import FeatureParser, StepRunner
+from framework.core.models.generic import Context
 from framework.core.models.test_catalog import TestFeature, TestStep
 from framework.core.utils import importutils
 from framework.core.utils.logger import logger
@@ -17,7 +20,7 @@ def step_def(step_identifier):
     def register_step_definition(func):
         step_identifier_str = str(step_identifier)
         if step_identifier_str not in Kriya.step_definition_mapping:
-            logger.info("registering %s", step_identifier_str)
+            logger.debug("registering %s to %s", step_identifier_str, func.__name__)
             Kriya.step_definition_mapping[step_identifier_str] = func
 
         return func
@@ -36,10 +39,191 @@ When = step_def
 Then = step_def
 
 
-class Kriya(FeatureParser, StepRunner):
+def before_run(tag_match_regex=None):
+    if (tag_match_regex is not None) and not isinstance(tag_match_regex, str):
+        raise TypeError("tag_match_regex must be a regex string")
+
+    if tag_match_regex is None:
+        tag_match_regex = '.*'
+
+    def register_before_run(func):
+
+        if tag_match_regex not in Kriya.before_run_mapping.keys():
+            Kriya.before_run_mapping[tag_match_regex] = []
+
+        logger.debug("registering hook before run %s", str(tag_match_regex))
+        Kriya.before_run_mapping[tag_match_regex].append(func)
+
+        return func
+
+    return register_before_run
+
+
+def before_feature(tag_match_regex=None):
+    if (tag_match_regex is not None) and not isinstance(tag_match_regex, str):
+        raise TypeError("tag_match_regex must be a regex string")
+
+    if tag_match_regex is None:
+        tag_match_regex = '.*'
+
+    def register_before_feature(func):
+
+        if tag_match_regex not in Kriya.before_feature_mapping.keys():
+            Kriya.before_feature_mapping[tag_match_regex] = []
+
+        logger.debug("registering hook before feature %s", str(tag_match_regex))
+        Kriya.before_feature_mapping[tag_match_regex].append(func)
+
+        return func
+
+    return register_before_feature
+
+
+def before_feature_iteration(tag_match_regex=None):
+    if (tag_match_regex is not None) and not isinstance(tag_match_regex, str):
+        raise TypeError("tag_match_regex must be a regex string")
+
+    if tag_match_regex is None:
+        tag_match_regex = '.*'
+
+    def register_before_feature_iteration(func):
+
+        if tag_match_regex not in Kriya.before_feature_iteration_mapping.keys():
+            Kriya.before_feature_iteration_mapping[tag_match_regex] = []
+
+        logger.debug("registering hook before feature_iteration %s", str(tag_match_regex))
+        Kriya.before_feature_iteration_mapping[tag_match_regex].append(func)
+
+        return func
+
+    return register_before_feature_iteration
+
+
+def before_scenario(tag_match_regex=None):
+    if (tag_match_regex is not None) and not isinstance(tag_match_regex, str):
+        raise TypeError("tag_match_regex must be a regex string")
+
+    if tag_match_regex is None:
+        tag_match_regex = '.*'
+
+    def register_before_scenario(func):
+
+        if tag_match_regex not in Kriya.before_scenario_mapping.keys():
+            Kriya.before_scenario_mapping[tag_match_regex] = []
+
+        logger.debug("registering hook before scenario %s", str(tag_match_regex))
+        Kriya.before_scenario_mapping[tag_match_regex].append(func)
+
+        return func
+
+    return register_before_scenario
+
+
+def after_scenario(tag_match_regex=None):
+    if (tag_match_regex is not None) and not isinstance(tag_match_regex, str):
+        raise TypeError("tag_match_regex must be a regex string")
+
+    if tag_match_regex is None:
+        tag_match_regex = '.*'
+
+    def register_after_scenario(func):
+
+        if tag_match_regex not in Kriya.after_scenario_mapping.keys():
+            Kriya.after_scenario_mapping[tag_match_regex] = []
+
+        logger.debug("registering hook after scenario %s", str(tag_match_regex))
+        Kriya.after_scenario_mapping[tag_match_regex].append(func)
+
+        return func
+
+    return register_after_scenario
+
+
+def after_feature_iteration(tag_match_regex=None):
+    if (tag_match_regex is not None) and not isinstance(tag_match_regex, str):
+        raise TypeError("tag_match_regex must be a regex string")
+
+    if tag_match_regex is None:
+        tag_match_regex = '.*'
+
+    def register_after_feature_iteration(func):
+
+        if tag_match_regex not in Kriya.after_feature_iteration_mapping.keys():
+            Kriya.after_feature_iteration_mapping[tag_match_regex] = []
+
+        logger.debug("registering hook after feature_iteration %s", str(tag_match_regex))
+        Kriya.after_feature_iteration_mapping[tag_match_regex].append(func)
+
+        return func
+
+    return register_after_feature_iteration
+
+
+def after_feature(tag_match_regex=None):
+    if (tag_match_regex is not None) and not isinstance(tag_match_regex, str):
+        raise TypeError("tag_match_regex must be a regex string")
+
+    if tag_match_regex is None:
+        tag_match_regex = '.*'
+
+    def register_after_feature(func):
+
+        if tag_match_regex not in Kriya.after_feature_mapping.keys():
+            Kriya.after_feature_mapping[tag_match_regex] = []
+
+        logger.debug("registering hook after feature %s", str(tag_match_regex))
+        Kriya.after_feature_mapping[tag_match_regex].append(func)
+
+        return func
+
+    return register_after_feature
+
+
+def after_run(tag_match_regex=None):
+    if (tag_match_regex is not None) and not isinstance(tag_match_regex, str):
+        raise TypeError("tag_match_regex must be a regex string")
+
+    if tag_match_regex is None:
+        tag_match_regex = '.*'
+
+    def register_after_run(func):
+
+        if tag_match_regex not in Kriya.after_run_mapping.keys():
+            Kriya.after_run_mapping[tag_match_regex] = []
+
+        logger.debug("registering hook after run %s", str(tag_match_regex))
+        Kriya.after_run_mapping[tag_match_regex].append(func)
+
+        return func
+
+    return register_after_run
+
+
+def check_and_run_hooks(context: Context, hook_mapping: dict[str, list[Callable]], tags: list[str], hook_type: str):
+    for tag_match_regex, hooks in hook_mapping.items():
+        if any(re.match(tag_match_regex, tag) for tag in tags):
+            for hook in hooks:
+                try:
+                    logger.info("Running %s hook %s", hook_type, hook.__name__)
+                    hook(context)
+                except Exception as e:
+                    logger.error("Error running %s hook %s: %s", hook_type, hook.__name__, str(e))
+                    raise e
+
+
+class Kriya(FeatureParser, StepRunner, TestLifecycleHook):
     dependency_injector = Inject()
 
     step_definition_mapping: dict[str, Callable] = {}
+
+    before_run_mapping: dict[str, list[Callable]] = {}
+    before_feature_mapping: dict[str, list[Callable]] = {}
+    before_feature_iteration_mapping: dict[str, list[Callable]] = {}
+    before_scenario_mapping: dict[str, list[Callable]] = {}
+    after_scenario_mapping: dict[str, list[Callable]] = {}
+    after_feature_iteration_mapping: dict[str, list[Callable]] = {}
+    after_feature_mapping: dict[str, list[Callable]] = {}
+    after_run_mapping: dict[str, list[Callable]] = {}
 
     def __init__(self, feature_directory: str, step_def_package: str):
         self.feature_directory = feature_directory
@@ -91,6 +275,46 @@ class Kriya(FeatureParser, StepRunner):
         else:
             message = "Step definition mapping for {} could not be found".format(step_to_call)
             return {}, False, message
+
+    def run_start(self, context: Context):
+        run_name = context.run_info.run.name
+        check_and_run_hooks(context, self.before_run_mapping, [run_name], "before run")
+
+    def feature_start(self, context: Context):
+        feature_tags = context.run_info.feature.tags
+        check_and_run_hooks(context, self.before_feature_mapping, feature_tags, "before feature")
+
+    def feature_iteration_start(self, context: Context):
+        feature_tags = context.run_info.feature.tags
+        check_and_run_hooks(context, self.before_feature_iteration_mapping, feature_tags, "before feature iteration")
+
+    def scenario_start(self, context: Context):
+        feature_tags = context.run_info.feature.tags
+        scenario_tags = context.run_info.scenario.tags
+        check_and_run_hooks(context, self.before_scenario_mapping, feature_tags | scenario_tags, "before scenario")
+
+    def step_start(self, context: Context):
+        pass
+
+    def step_complete(self, context: Context):
+        pass
+
+    def scenario_complete(self, context: Context):
+        feature_tags = context.run_info.feature.tags
+        scenario_tags = context.run_info.scenario.tags
+        check_and_run_hooks(context, self.after_scenario_mapping, feature_tags | scenario_tags, "after scenario")
+
+    def feature_iteration_complete(self, context: Context):
+        feature_tags = context.run_info.feature.tags
+        check_and_run_hooks(context, self.after_feature_iteration_mapping, feature_tags, "after feature iteration")
+
+    def feature_complete(self, context: Context):
+        feature_tags = context.run_info.feature.tags
+        check_and_run_hooks(context, self.after_feature_mapping, feature_tags, "after feature")
+
+    def run_complete(self, context: Context):
+        run_name = context.run_info.run.name
+        check_and_run_hooks(context, self.after_run_mapping, [run_name], "after run")
 
 
 class KriyaGherkinPlugin(FeatureParser):

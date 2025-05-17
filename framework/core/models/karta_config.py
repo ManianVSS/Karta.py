@@ -92,6 +92,6 @@ default_karta_config = KartaConfig(
         '.kriya': 'KriyaGherkin',
     },
     test_catalog_manager='KartaTestCatalogManager',
-    test_lifecycle_hooks=['LoggingTestLifecycleHook', ],
+    test_lifecycle_hooks=['Kriya', 'LoggingTestLifecycleHook', ],
     test_event_listeners=['JSONEventDumper', ],
 )
