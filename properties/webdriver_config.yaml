@@ -1,0 +1,22 @@
+w3schools_webdriver_config_chrome:
+  driver_location: '/usr/bin/chromedriver'
+  browser: chrome
+  headless: false
+  resize: True
+#  use_service: True
+  screen_size:
+    maximized: True
+  implicit_wait: 1
+
+w3schools_webdriver_config_firefox:
+  driver_location: '/usr/bin/deckodriver'
+  binary_location: '/home/manian/Downloads/firefox/firefox'
+  browser: firefox
+  headless: false
+  resize: True
+#  remote: True
+#  use_service: True
+#  service_args: [ '--marionette-port', '2828', '--connect-existing' ]
+  screen_size:
+    maximized: True
+  implicit_wait: 1

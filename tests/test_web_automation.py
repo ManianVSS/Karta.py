@@ -1,5 +1,8 @@
 import time
 
+import yaml
+
+from app_object_factory.w3schools import W3SchoolsApp, HomePage, HTMLHomePage, HTMLIntroductionPage
 from framework.web.factory import create_web_driver, ChromeDriver, FirefoxDriver
 from framework.web.models import WebDriverConfig, Browser, ScreenSize
 
@@ -71,8 +74,41 @@ def test_firefox_remote_driver_creation():
     driver.quit()
 
 
+def test_appliction_objet_model():
+    web_driver_config_file = '../properties/webdriver_config.yaml'
+    with open(web_driver_config_file, 'r') as file:
+        config_data = yaml.safe_load(file)
+    web_driver_config = WebDriverConfig.validate(config_data["w3schools_webdriver_config_chrome"])
+
+    with W3SchoolsApp(web_driver_config, '../locators/W3SchoolsApp.yaml') as w3schools_app:
+        home_page = w3schools_app.initialize_application()
+        assert isinstance(home_page, HomePage) and (
+                home_page == w3schools_app.current_page), "Home page is not initialized correctly"
+
+        html_home_page = w3schools_app.current_page.open_learn_html_page()
+        assert isinstance(html_home_page, HTMLHomePage) and (
+                html_home_page == w3schools_app.current_page), "HTML Home page is not initialized correctly"
+
+        html_intro_page = w3schools_app.current_page.open_html_intro_page()
+        assert isinstance(html_intro_page, HTMLIntroductionPage) and (
+                html_intro_page == w3schools_app.current_page), "HTML Introduction page is not initialized correctly"
+
+        html_home_page = w3schools_app.current_page.open_learn_html_page()
+        assert isinstance(html_home_page, HTMLHomePage) and (
+                html_home_page == w3schools_app.current_page), "HTML Home page is not initialized correctly"
+
+        home_page = w3schools_app.current_page.open_home_page()
+        assert isinstance(home_page, HomePage) and (
+                home_page == w3schools_app.current_page), "Home page is not initialized correctly"
+
+    # Close the application using context manager and check if the driver is None
+    assert w3schools_app.driver is None
+
+
 if __name__ == '__main__':
     test_chrome_driver_creation()
     test_firefox_driver_creation()
     test_firefox_marionette_service_creation()
     test_firefox_remote_driver_creation()
+
+    test_appliction_objet_model()

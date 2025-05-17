@@ -1,20 +1,15 @@
-import abc
 from enum import Enum
 from typing import Optional
-from typing import Union
 
 from pydantic.v1 import BaseModel
-from selenium.webdriver.chrome.webdriver import WebDriver as ChromeDriver
-from selenium.webdriver.edge.webdriver import WebDriver as EdgeDriver
-from selenium.webdriver.firefox.webdriver import WebDriver as FirefoxDriver
-from selenium.webdriver.safari.webdriver import WebDriver as SafariDriver
+from selenium.webdriver.common.by import By
 
 
 class Browser(Enum):
-    FIREFOX = "firefox",
-    CHROME = "chrome",
-    EDGE = "edge",
-    SAFARI = "Safari",
+    FIREFOX = "firefox"
+    CHROME = "chrome"
+    EDGE = "edge"
+    SAFARI = "Safari"
 
 
 class ScreenSize(BaseModel):
@@ -50,4 +45,97 @@ class WebDriverConfig(BaseModel):
         super().__init__(**kwargs)
 
 
+class LocatoryType(Enum):
+    ID = "ID"
+    XPATH = "XPATH"
+    LINK_TEXT = "LINK_TEXT"
+    PARTIAL_LINK_TEXT = "PARTIAL_LINK_TEXT"
+    NAME = "NAME"
+    TAG = "TAG"
+    CLASS = "CLASS"
+    CSS = "CSS"
 
+
+class ContainerType(Enum):
+    IFRAME = "IFRAME"
+    SHADOW_ROOT = "SHADOW_ROOT"
+
+
+class Locator(BaseModel):
+    """
+    Locator class for web elements
+
+    Attributes:
+        type (LocatoryType): The type of locator (ID, XPATH, etc.)
+        selector (str): The selector string for the locator
+        multiple (bool): Whether to find multiple elements or not
+        container_type (ContainerType): The type of container this element is if it is a parent(IFRAME, SHADOW_ROOT)
+        parent (Locator): The parent locator if any. Nested parent locators are not supported.
+    """
+    type: Optional[LocatoryType] = LocatoryType.CSS
+    selector: str = ""
+    multiple: Optional[bool] = False
+    container_type: Optional[ContainerType] = None
+    parent: Optional['Locator'] = None
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def get_selenium_by(self) -> tuple[str, str]:
+        """
+        Get the selenium By tuple for the locator type sutable for use with Selenium's find element methods.
+        :return: tuple of (by, selector)
+        """
+        if self.type == LocatoryType.ID:
+            return By.ID, self.selector
+        elif self.type == LocatoryType.XPATH:
+            return By.XPATH, self.selector
+        elif self.type == LocatoryType.LINK_TEXT:
+            return By.LINK_TEXT, self.selector
+        elif self.type == LocatoryType.PARTIAL_LINK_TEXT:
+            return By.PARTIAL_LINK_TEXT, self.selector
+        elif self.type == LocatoryType.NAME:
+            return By.NAME, self.selector
+        elif self.type == LocatoryType.TAG:
+            return By.TAG_NAME, self.selector
+        elif self.type == LocatoryType.CLASS:
+            return By.CLASS_NAME, self.selector
+        elif self.type == LocatoryType.CSS:
+            return By.CSS_SELECTOR, self.selector
+        else:
+            raise ValueError(f"Invalid locator type: {self.type}")
+
+    @classmethod
+    def convert_from_dict(cls, locator_dict: dict) -> Optional['Locator']:
+        """
+        Validate and convert a dictionary to a Locator object.
+        :param locator_dict: The dictionary to convert
+        :return: A Locator object or None if the dictionary is invalid
+        """
+
+        if not isinstance(locator_dict, dict):
+            return None
+            # Check if all locators in locators_data have right parameters
+        if not all(key in ['type', 'selector', 'multiple', 'container_type', 'parent'] for key in
+                   locator_dict.keys()):
+            return None
+        if 'selector' not in locator_dict:
+            return None
+
+        locator = Locator(
+            type=locator_dict.get('type', LocatoryType.CSS),
+            selector=locator_dict['selector'],
+            multiple=locator_dict.get('multiple', False),
+            container_type=ContainerType(
+                locator_dict['container_type']) if 'container_type' in locator_dict else None
+        )
+
+        if 'parent' in locator_dict:
+            parent_locator = Locator.convert_from_dict(locator_dict['parent'])
+            if parent_locator is None:
+                return None
+            if parent_locator.container_type is None:
+                parent_locator.container_type = ContainerType.IFRAME
+            locator.parent = parent_locator
+
+        return locator

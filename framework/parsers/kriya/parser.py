@@ -277,12 +277,16 @@ class KriyaParser(object):
     def p_feature(self, p):
         """
         feature : tags FEATURE scenarios
-                | tags FEATURE DOC_STRING scenarios
-                | tags FEATURE background scenarios
-                | tags FEATURE DOC_STRING background scenarios
+                | tags FEATURE ITERATIONS scenarios
                 | tags FEATURE ITERATIONS ITERATION_POLICY scenarios
+                | tags FEATURE DOC_STRING scenarios
+                | tags FEATURE DOC_STRING ITERATIONS scenarios
                 | tags FEATURE DOC_STRING ITERATIONS ITERATION_POLICY scenarios
+                | tags FEATURE background scenarios
+                | tags FEATURE ITERATIONS background scenarios
                 | tags FEATURE ITERATIONS ITERATION_POLICY background scenarios
+                | tags FEATURE DOC_STRING background scenarios
+                | tags FEATURE DOC_STRING ITERATIONS background scenarios
                 | tags FEATURE DOC_STRING ITERATIONS ITERATION_POLICY background scenarios
         """
         tags = []

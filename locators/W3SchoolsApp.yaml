@@ -1,0 +1,37 @@
+HomePage:
+  logo:
+    selector: '#w3-logo > i'
+  learn_html_button:
+    type: CSS
+    selector: '#subtopnav > a.ga-nav.subtopnav_firstitem'
+  learn_pyton_button:
+    type: XPATH
+    selector: '//*[@id="subtopnav"]/a[5]'
+
+HTMLHomePage:
+  logo:
+    selector: '#w3-logo > i'
+  learn_html_button:
+    type: CSS
+    selector: '#subtopnav > a.ga-nav.subtopnav_firstitem'
+  learn_pyton_button:
+    type: XPATH
+    selector: '//*[@id="subtopnav"]/a[5]'
+  html_tuturial_text:
+    selector: '#main > h1> span'
+  html_introduction_button:
+    selector: '#leftmenuinnerinner > a:nth-child(3)'
+
+HTMLIntroductionPage:
+  logo:
+    selector: '#w3-logo > i'
+  learn_html_button:
+    type: CSS
+    selector: '#subtopnav > a.ga-nav.subtopnav_firstitem'
+  learn_pyton_button:
+    type: XPATH
+    selector: '//*[@id="subtopnav"]/a[5]'
+  html_introduction_text:
+    selector: '#main > h1> span'
+  html_home_button:
+    selector: '#leftmenuinnerinner > a:nth-child(2)'
