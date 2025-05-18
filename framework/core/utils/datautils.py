@@ -1,4 +1,5 @@
 import re
+import traceback
 
 import yaml
 
@@ -99,3 +100,20 @@ def increment_alphanumerical_string(current_string):
                     carry = 1
 
     return str(char_array), carry
+
+
+def serialize_exception(exception_object):
+    """
+    Serializes an exception object into a dictionary.
+
+    Args:
+        exception_object: The exception object to serialize.
+
+    Returns:
+        A dictionary containing the exception type, message, and stack trace.
+    """
+    return {
+        'type': type(exception_object).__name__,
+        'message': str(exception_object),
+        'traceback': traceback.format_exc().splitlines()
+    }

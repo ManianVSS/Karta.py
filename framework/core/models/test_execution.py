@@ -1,15 +1,29 @@
 from datetime import datetime
-from typing import Optional, Dict
+from typing import Optional, Dict, Union
 
 from pydantic import BaseModel
 
 from framework.core.models.test_catalog import TestScenario
+from framework.core.utils.datautils import serialize_exception
 
 
 class ResultNode(BaseModel):
     name: Optional[str] = None
     source: Optional[str] = None
     line_number: Optional[int] = 0
+
+
+class TestIncident(BaseModel):
+    name: Optional[str] = None
+    message: Optional[str] = None
+    tags: Optional[set[str]] = None
+    exception: Optional[Union[dict, str]] = None
+    time_of_occurrence: Optional[datetime] = datetime.now()
+
+    def __init__(self, **kwargs):
+        if 'exception' in kwargs and isinstance(kwargs['exception'], Exception):
+            kwargs['exception'] = serialize_exception(kwargs['exception'])
+        super().__init__(**kwargs)
 
 
 class StepResult(ResultNode):
@@ -19,12 +33,13 @@ class StepResult(ResultNode):
     error: Optional[str] = None
     results: Optional[Dict] = None
     step_results: Optional[list['StepResult']] = None
+    incidents: Optional[list[TestIncident]] = None
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
     def is_successful(self):
-        return not self.error and self.successful
+        return not self.error and self.successful and not self.incidents
 
     def merge_result(self, another):
         if not self.start_time:
@@ -37,6 +52,11 @@ class StepResult(ResultNode):
         self.successful = not self.error and self.successful and another.successful
         if another.results:
             self.results.update(another.results)
+
+        if another.incidents:
+            if self.incidents is None:
+                self.incidents = []
+            self.incidents.extend(another.incidents)
 
     def add_step_result(self, step_result: 'StepResult'):
         if self.step_results is None:
