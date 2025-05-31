@@ -4,7 +4,11 @@ from typing import Optional
 from framework.core.models.test_catalog import TestStep, TestFeature, TestScenario
 
 
-class FeatureParser(metaclass=abc.ABCMeta):
+class Plugin(metaclass=abc.ABCMeta):
+    pass
+
+
+class FeatureParser(Plugin):
     @abc.abstractmethod
     def parse_feature(self, feature_source: str) -> TestFeature:
         raise NotImplementedError
@@ -18,7 +22,7 @@ class FeatureParser(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
 
-class StepRunner(metaclass=abc.ABCMeta):
+class StepRunner(Plugin):
     @abc.abstractmethod
     def get_steps(self) -> list[str]:
         raise NotImplementedError
@@ -32,7 +36,7 @@ class StepRunner(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
 
-class TestCatalogManager(metaclass=abc.ABCMeta):
+class TestCatalogManager(Plugin):
     @abc.abstractmethod
     def list_features(self) -> dict[str, TestFeature]:
         raise NotImplementedError

@@ -416,8 +416,17 @@ class WebAUT(metaclass=abc.ABCMeta):
                 if not locator or not isinstance(locator, Locator):
                     raise ValueError(f"Invalid locator format for element '{element_name}' on page '{page_name}'. "
                                      f"Check syntax.")
-
                 page_locators[page_name][element_name] = locator
+
+            # Check if parent locators are present in the page's locators and is not recursive
+            for element_name, locator in page_locators[page_name].items():
+                if locator.parent:
+                    if locator.parent == element_name:
+                        raise ValueError(
+                            f"Element '{element_name}' cannot be its own parent in page '{page_name}' locators.")
+                    if locator.parent not in page_locators[page_name]:
+                        raise ValueError(f"Parent locator '{locator.parent}' for element '{element_name}' "
+                                         f"is not defined in page '{page_name}' locators.")
         self.page_locators = page_locators
 
     @abc.abstractmethod

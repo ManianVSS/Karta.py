@@ -226,6 +226,7 @@ class Kriya(FeatureParser, StepRunner, TestLifecycleHook):
     after_run_mapping: dict[str, list[Callable]] = {}
 
     def __init__(self, feature_directory: str, step_def_package: str):
+        self.parser = KriyaParser()
         self.feature_directory = feature_directory
         self.step_def_package = step_def_package
 
@@ -238,22 +239,35 @@ class Kriya(FeatureParser, StepRunner, TestLifecycleHook):
             imported_module = importutils.import_module_from_file(module_name, py_file)
             self.dependency_injector.inject(imported_module)
 
-    def parse_feature(self, feature_source: str):
-        feature_raw_object = yaml.safe_load(feature_source)
-        feature_object = TestFeature.model_validate(feature_raw_object)
-        return feature_object
+    def parse_feature(self, feature_source: str, yaml_parser: bool = False) -> TestFeature:
+        if yaml_parser:
+            # If yaml_parser is True, parse the feature source as YAML
+            feature_raw_object = yaml.safe_load(feature_source)
+            feature_object = TestFeature.model_validate(feature_raw_object)
+            return feature_object
+        else:
+            feature_object = self.parser.parse(feature_source)
+            return feature_object
 
     def parse_feature_file(self, feature_file: str) -> TestFeature:
-        with open(feature_file, "r") as stream:
-            parsed_feature = self.parse_feature(stream.read())
-            # str(Path(feature_file).resolve())
-            parsed_feature.source = feature_file
-            return parsed_feature
+        if feature_file.endswith(".yaml") or feature_file.endswith(".yml"):
+            with open(feature_file, "r") as stream:
+                parsed_feature = self.parse_feature(stream.read(), yaml_parser=True)
+                # str(Path(feature_file).resolve())
+                parsed_feature.source = feature_file
+                return parsed_feature
+        else:
+            with open(feature_file, "r") as stream:
+                parsed_feature = self.parse_feature(stream.read())
+                # str(Path(feature_file).resolve())
+                parsed_feature.set_source(feature_file)
+                return parsed_feature
 
     def get_features(self, ) -> list[TestFeature]:
         parsed_features = []
         folder_path = Path(self.feature_directory)
-        for file in folder_path.glob("**/*.yaml"):
+        for file in itertools.chain(folder_path.glob("**/*.yaml"), folder_path.glob("**/*.feature"),
+                                    folder_path.glob("**/*.kriya")):
             parsed_feature = self.parse_feature_file(str(file))
             parsed_features.append(parsed_feature)
         return parsed_features
@@ -289,9 +303,10 @@ class Kriya(FeatureParser, StepRunner, TestLifecycleHook):
         check_and_run_hooks(context, self.before_feature_iteration_mapping, feature_tags, "before feature iteration")
 
     def scenario_start(self, context: Context):
-        feature_tags = context.run_info.feature.tags
+        # feature_tags = context.run_info.feature.tags
         scenario_tags = context.run_info.scenario.tags
-        check_and_run_hooks(context, self.before_scenario_mapping, feature_tags | scenario_tags, "before scenario")
+        # feature_tags | scenario_tags
+        check_and_run_hooks(context, self.before_scenario_mapping, scenario_tags, "before scenario")
 
     def step_start(self, context: Context):
         pass
@@ -300,9 +315,10 @@ class Kriya(FeatureParser, StepRunner, TestLifecycleHook):
         pass
 
     def scenario_complete(self, context: Context):
-        feature_tags = context.run_info.feature.tags
+        # feature_tags = context.run_info.feature.tags
         scenario_tags = context.run_info.scenario.tags
-        check_and_run_hooks(context, self.after_scenario_mapping, feature_tags | scenario_tags, "after scenario")
+        # feature_tags | scenario_tags
+        check_and_run_hooks(context, self.after_scenario_mapping, scenario_tags, "after scenario")
 
     def feature_iteration_complete(self, context: Context):
         feature_tags = context.run_info.feature.tags
@@ -315,33 +331,3 @@ class Kriya(FeatureParser, StepRunner, TestLifecycleHook):
     def run_complete(self, context: Context):
         run_name = context.run_info.run.name
         check_and_run_hooks(context, self.after_run_mapping, [run_name], "after run")
-
-
-class KriyaGherkinPlugin(FeatureParser):
-    step_definition_mapping = {}
-
-    def __init__(self, feature_directory: str):
-        self.parser = KriyaParser()
-        self.feature_directory = feature_directory
-
-    def get_steps(self):
-        return self.step_definition_mapping
-
-    def parse_feature(self, feature_source: str) -> TestFeature:
-        feature_object = self.parser.parse(feature_source)
-        return feature_object
-
-    def parse_feature_file(self, feature_file: str) -> TestFeature:
-        with open(feature_file, "r") as stream:
-            parsed_feature = self.parse_feature(stream.read())
-            # str(Path(feature_file).resolve())
-            parsed_feature.set_source(feature_file)
-            return parsed_feature
-
-    def get_features(self, ) -> list[TestFeature]:
-        parsed_features = []
-        folder_path = Path(self.feature_directory)
-        for file in itertools.chain(folder_path.glob("**/*.feature"), folder_path.glob("**/*.kriya")):
-            parsed_feature = self.parse_feature_file(str(file))
-            parsed_features.append(parsed_feature)
-        return parsed_features

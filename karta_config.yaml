@@ -12,17 +12,9 @@ plugins:
   Kriya:
     module_name: framework.plugins.kriya
     class_name: Kriya
-    init:
-      kwargs:
-        step_def_package: step_definitions
-        feature_directory: features
-
-  KriyaGherkin:
-    module_name: framework.plugins.kriya
-    class_name: KriyaGherkinPlugin
-    init:
-      kwargs:
-        feature_directory: features
+    kwargs:
+      step_def_package: step_definitions
+      feature_directory: features
 
   KartaTestCatalogManager:
     module_name: framework.plugins.catalog
@@ -35,9 +27,8 @@ plugins:
   JSONEventDumper:
     module_name: framework.plugins.listeners
     class_name: DumpToJSONEventListener
-    init:
-      kwargs:
-        json_file_name: logs/events.json
+    kwargs:
+      json_file_name: logs/events.json
 
 #Step Runners plugin name
 step_runners:
@@ -47,8 +38,8 @@ step_runners:
 parser_map:
   .yml: Kriya
   .yaml: Kriya
-  .feature: KriyaGherkin
-  .kriya: KriyaGherkin
+  .feature: Kriya
+  .kriya: Kriya
 
 #Test Catalog Manager plugin name
 test_catalog_manager: KartaTestCatalogManager

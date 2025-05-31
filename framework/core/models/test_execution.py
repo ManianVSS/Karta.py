@@ -120,7 +120,7 @@ class Run(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     tags: Optional[set[str]] = None
-    scenarios: Optional[set[TestScenario]] = set()
+    # scenarios: Optional[set[TestScenario]] = set()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

@@ -1,9 +1,10 @@
 import abc
 
+from framework.core.interfaces.test_interfaces import Plugin
 from framework.core.models.generic import Context
 
 
-class DependencyInjector(metaclass=abc.ABCMeta):
+class DependencyInjector(Plugin):
     @abc.abstractmethod
     def register(self, name: str, value: object) -> object:
         raise NotImplementedError
@@ -13,7 +14,7 @@ class DependencyInjector(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
 
-class TestLifecycleHook(metaclass=abc.ABCMeta):
+class TestLifecycleHook(Plugin):
     """
         TestLifecycleHooks are called synchronously in the different phases of test lifecycle
     """
@@ -59,7 +60,7 @@ class TestLifecycleHook(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
 
-class TestEventListener(metaclass=abc.ABCMeta):
+class TestEventListener(Plugin):
     """
         TestEventListeners are notified of test events asynchronously after occurrence.
         This can be used to create report generators.

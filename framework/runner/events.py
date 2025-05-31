@@ -102,12 +102,12 @@ class EventProcessor:
         for test_lifecycle_hooks in self.test_lifecycle_hooks:
             test_lifecycle_hooks.feature_iteration_start(feature_context)
 
-    def scenario_start(self, run: Run, feature: TestFeature, iteration_index: int, scenario: TestScenario,
+    def scenario_start(self, run: Run, feature_name: str, iteration_index: int, scenario: TestScenario,
                        scenario_context: Context):
         run_info = Context()
         run_info.time = datetime.now()
         run_info.run = run
-        run_info.feature = feature
+        run_info.feature = feature_name
         run_info.iteration_index = iteration_index
         run_info.scenario = scenario
         scenario_context.run_info = run_info
@@ -115,7 +115,7 @@ class EventProcessor:
         event_context = Context({
             'time': run_info.time,
             'run': run.name,
-            'feature': feature.name,
+            'feature': feature_name,
             'iteration_index': iteration_index,
             'scenario': scenario.name,
         })
@@ -126,23 +126,23 @@ class EventProcessor:
         for test_lifecycle_hooks in self.test_lifecycle_hooks:
             test_lifecycle_hooks.scenario_start(scenario_context)
 
-    def step_start(self, run: Run, feature: TestFeature, iteration_index: int, scenario: TestScenario, step: TestStep,
+    def step_start(self, run: Run, feature_name: str, iteration_index: int, scenario_name: str, step: TestStep,
                    scenario_context: Context):
         run_info = Context()
         run_info.time = datetime.now()
         run_info.run = run
-        run_info.feature = feature
+        run_info.feature = feature_name
         run_info.iteration_index = iteration_index
-        run_info.scenario = scenario
+        run_info.scenario = scenario_name
         run_info.step = step
         scenario_context.run_info = run_info
 
         event_context = Context({
             'time': run_info.time,
             'run': run.name,
-            'feature': feature.name,
+            'feature': feature_name,
             'iteration_index': iteration_index,
-            'scenario': scenario.name,
+            'scenario': scenario_name,
             'step': step.name,
         })
         for test_event_listener in self.test_event_listeners:
@@ -152,14 +152,14 @@ class EventProcessor:
         for test_lifecycle_hooks in self.test_lifecycle_hooks:
             test_lifecycle_hooks.step_start(scenario_context)
 
-    def step_complete(self, run: Run, feature: TestFeature, iteration_index: int, scenario: TestScenario,
+    def step_complete(self, run: Run, feature_name: str, iteration_index: int, scenario_name: str,
                       step: TestStep, result: StepResult, scenario_context: Context):
         run_info = Context()
         run_info.time = datetime.now()
         run_info.run = run
-        run_info.feature = feature
+        run_info.feature = feature_name
         run_info.iteration_index = iteration_index
-        run_info.scenario = scenario
+        run_info.scenario = scenario_name
         run_info.step = step
         run_info['result'] = result
         scenario_context.run_info = run_info
@@ -167,9 +167,9 @@ class EventProcessor:
         event_context = Context({
             'time': run_info.time,
             'run': run.name,
-            'feature': feature.name,
+            'feature': feature_name,
             'iteration_index': iteration_index,
-            'scenario': scenario.name,
+            'scenario': scenario_name,
             'step': step.name,
             'result': result,
         })
@@ -180,12 +180,12 @@ class EventProcessor:
         for test_lifecycle_hooks in self.test_lifecycle_hooks:
             test_lifecycle_hooks.step_complete(scenario_context)
 
-    def scenario_complete(self, run: Run, feature: TestFeature, iteration_index: int, scenario: TestScenario,
+    def scenario_complete(self, run: Run, feature_name: str, iteration_index: int, scenario: TestScenario,
                           result: ScenarioResult, scenario_context: Context):
         run_info = Context()
         run_info.time = datetime.now()
         run_info.run = run
-        run_info.feature = feature
+        run_info.feature = feature_name
         run_info.iteration_index = iteration_index
         run_info.scenario = scenario
         run_info.result = result
@@ -194,7 +194,7 @@ class EventProcessor:
         event_context = Context({
             'time': run_info.time,
             'run': run.name,
-            'feature': feature.name,
+            'feature': feature_name,
             'iteration_index': iteration_index,
             'scenario': scenario.name,
             'result': result,

@@ -59,6 +59,12 @@ class LocatoryType(Enum):
 class ContainerType(Enum):
     IFRAME = "IFRAME"
     SHADOW_ROOT = "SHADOW_ROOT"
+    BUTTON = "BUTTON"
+    TEXT_FIELD = "TEXT_FIELD"
+    CHECKBOX = "CHECKBOX"
+    LISTBOX = "LISTBOX"
+    COMBOBOX = "COMBOBOX"
+    GENERIC_ELEMENT = "GENERIC_ELEMENT"
 
 
 class Locator(BaseModel):
@@ -70,13 +76,14 @@ class Locator(BaseModel):
         selector (str): The selector string for the locator
         multiple (bool): Whether to find multiple elements or not
         container_type (ContainerType): The type of container this element is if it is a parent(IFRAME, SHADOW_ROOT)
-        parent (Locator): The parent locator if any. Nested parent locators are not supported.
+        parent (Optional[str]): The parent locator name if this element is inside a container.
+                                This loator should be present in the page's locator.
     """
     type: Optional[LocatoryType] = LocatoryType.CSS
     selector: str = ""
     multiple: Optional[bool] = False
     container_type: Optional[ContainerType] = None
-    parent: Optional['Locator'] = None
+    parent: Optional[str] = None
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -129,13 +136,5 @@ class Locator(BaseModel):
             container_type=ContainerType(
                 locator_dict['container_type']) if 'container_type' in locator_dict else None
         )
-
-        if 'parent' in locator_dict:
-            parent_locator = Locator.convert_from_dict(locator_dict['parent'])
-            if parent_locator is None:
-                return None
-            if parent_locator.container_type is None:
-                parent_locator.container_type = ContainerType.IFRAME
-            locator.parent = parent_locator
 
         return locator

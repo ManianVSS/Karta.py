@@ -33,3 +33,6 @@ class GherkinPlugin(FeatureParser):
             parsed_feature = self.parse_feature_file(str(file))
             parsed_features.append(parsed_feature)
         return parsed_features
+
+
+gherkin_plugin = GherkinPlugin(feature_directory='features')

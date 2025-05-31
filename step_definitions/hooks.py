@@ -39,7 +39,7 @@ def before_firefox_scenario_hook(context=None):
     context.w3schools_app.initialize_application()
 
 
-@after_scenario("^w3schools$")
+@after_scenario("^(w3schools|firefox|chrome)$")
 def after_web_test_scenario_hook(context=None):
     logger.info("After web test scenario hook")
     context.w3schools_app.close()
