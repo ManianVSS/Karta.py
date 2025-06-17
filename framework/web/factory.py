@@ -148,7 +148,7 @@ class Element:
         self.locator = locator
         self.driver = driver
 
-    # TODO: All methods need to handle parent iframe and shadow roots
+    # TODO: All methods need to handle iframe and shadow roots
     def wait_for_visibility(self, timeout: int = 10) -> bool:
         """
         Wait for the element to be visible on the page.
@@ -418,14 +418,21 @@ class WebAUT(metaclass=abc.ABCMeta):
                                      f"Check syntax.")
                 page_locators[page_name][element_name] = locator
 
-            # Check if parent locators are present in the page's locators and is not recursive
+            # Check if iframe and shadow root locators are present in the page's locators and is not recursive
             for element_name, locator in page_locators[page_name].items():
-                if locator.parent:
-                    if locator.parent == element_name:
+                if locator.iframe:
+                    if locator.iframe == element_name:
                         raise ValueError(
-                            f"Element '{element_name}' cannot be its own parent in page '{page_name}' locators.")
-                    if locator.parent not in page_locators[page_name]:
-                        raise ValueError(f"Parent locator '{locator.parent}' for element '{element_name}' "
+                            f"Element '{element_name}' cannot be its own iframe in page '{page_name}' locators.")
+                    if locator.iframe not in page_locators[page_name]:
+                        raise ValueError(f"Iframe locator '{locator.iframe}' for element '{element_name}' "
+                                         f"is not defined in page '{page_name}' locators.")
+                if locator.shadow_root:
+                    if locator.shadow_root == element_name:
+                        raise ValueError(
+                            f"Element '{element_name}' cannot be its own shadow root in page '{page_name}' locators.")
+                    if locator.shadow_root not in page_locators[page_name]:
+                        raise ValueError(f"Shadow root locator '{locator.shadow_root}' for element '{element_name}' "
                                          f"is not defined in page '{page_name}' locators.")
         self.page_locators = page_locators
 
