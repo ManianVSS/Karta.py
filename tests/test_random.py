@@ -1,6 +1,6 @@
 from random import Random
 
-from framework.core.utils.randomization_utils import generate_next_composition_from_probability_map, generate_next_mutex_composition_from_probability_map
+from karta.core.utils.randomization_utils import generate_next_composition_from_probability_map, generate_next_mutex_composition_from_probability_map
 
 rng = Random()
 # for i in range(100):

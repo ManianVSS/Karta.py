@@ -2,7 +2,7 @@
 source .venv/bin/activate
 
 rm -rf build/ dist/
-pyinstaller --hidden-import framework.plugins.dependency_injector --hidden-import framework.plugins.kriya --hidden-import framework.plugins.gherkin --contents-directory lib -n karta main.py
+pyinstaller --hidden-import karta.plugins.dependency_injector --hidden-import karta.plugins.kriya --hidden-import karta.plugins.gherkin --contents-directory lib -n karta main.py
 #pyinstaller installer.spec
 #--add-data "templates:."
 cp -r features dist/karta

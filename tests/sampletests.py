@@ -1,5 +1,5 @@
-from framework.core.utils.logger import logger
-from framework.runner.runtime import karta_runtime
+from karta.core.utils.logger import logger
+from karta.runner.runtime import karta_runtime
 
 # feature_result1 = karta_runtime.run_feature_file('features/test.yaml')
 # logger.info('Feature result1 is %s', str(feature_result1))
