@@ -2,8 +2,8 @@ from typing import Optional
 
 from selenium.common import StaleElementReferenceException, NoSuchElementException, TimeoutException
 
-from framework.web.factory import WebAUT, Page
-from framework.web.models import WebDriverConfig
+from karta.web.factory import WebAUT, Page
+from karta.web.models import WebDriverConfig
 
 
 class W3SchoolsApp(WebAUT):

@@ -1,8 +1,8 @@
-from app_object_factory.w3schools import W3SchoolsApp, HomePage, HTMLHomePage, HTMLIntroductionPage
-from framework.core.utils.logger import logger
-from framework.plugins.dependency_injector import Inject
-from framework.plugins.kriya import step_def
-from framework.web.models import WebDriverConfig
+from step_definitions._w3schools import W3SchoolsApp, HomePage, HTMLHomePage, HTMLIntroductionPage
+from karta.core.utils.logger import logger
+from karta.plugins.dependency_injector import Inject
+from karta.plugins.kriya import step_def
+from karta.web.models import WebDriverConfig
 
 test_properties = Inject("properties")
 

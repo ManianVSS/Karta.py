@@ -4,28 +4,28 @@ property_files:
 
 #Dependency Injector
 dependency_injector:
-  module_name: framework.plugins.dependency_injector
+  module_name: karta.plugins.dependency_injector
   class_name: KartaDependencyInjector
 
 # Plugins for Karta
 plugins:
   Kriya:
-    module_name: framework.plugins.kriya
+    module_name: karta.plugins.kriya
     class_name: Kriya
     kwargs:
       step_def_package: step_definitions
       feature_directory: features
 
   KartaTestCatalogManager:
-    module_name: framework.plugins.catalog
+    module_name: karta.plugins.catalog
     class_name: KartaTestCatalogManager
 
   LoggingTestLifecycleHook:
-    module_name: framework.plugins.listeners
+    module_name: karta.plugins.listeners
     class_name: LoggingTestLifecycleHook
 
   JSONEventDumper:
-    module_name: framework.plugins.listeners
+    module_name: karta.plugins.listeners
     class_name: DumpToJSONEventListener
     kwargs:
       json_file_name: logs/events.json

@@ -1,7 +1,7 @@
 import random
 
-from framework.core.utils.logger import logger
-from framework.plugins.kriya import Given, step
+from karta.core.utils.logger import logger
+from karta.plugins.kriya import Given, step
 
 
 @Given("my sample step definition1")

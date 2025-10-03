@@ -1,8 +1,8 @@
 import random
 
-from framework.core.utils.logger import logger
-from framework.plugins.dependency_injector import Inject
-from framework.plugins.kriya import step_def
+from karta.core.utils.logger import logger
+from karta.plugins.dependency_injector import Inject
+from karta.plugins.kriya import step_def
 
 test_properties = Inject("properties")
 

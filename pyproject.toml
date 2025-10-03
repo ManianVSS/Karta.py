@@ -1,0 +1,67 @@
+[project]
+name = "karta"
+version = "0.1.0"
+authors = [
+    { name = "Manian VSS", email = "manianvss@hotmail.com" },
+]
+description = "Karta is a system test automation framework."
+readme = "README.md"
+requires-python = ">=3.9"
+keywords = ["automation", "testing", "framework", "karta"]
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+    "Topic :: Software Development :: Testing",
+]
+dependencies = [
+    "fastapi[standard]",
+    "PyYAML",
+    "pydantic",
+    "ply",
+    "starlette",
+    "uvicorn",
+    "selenium",
+    "selenium-page-factory",
+    "pyinstaller",
+]
+[project.urls]
+"Homepage" = "https://github.com/ManianVSS/Karta.py"
+"Documentation" = "https://github.com/ManianVSS/Karta.py/wiki"
+"Changelog" = "https://github.com/ManianVSS/Karta.py/commits/main/"
+
+[project.scripts]
+karta = "karta:main"
+karta-server = "karta.server:main"
+#
+#[build-system]
+#requires = ["setuptools", "wheel"]
+#build-backend = "setuptools.build_meta"
+#
+#
+[tool.setuptools.packages]
+find = { where = ["."], exclude = [
+    #    "app_object_factory*",
+    #    "agent*",
+    "docs*",
+    #    "samples",
+    #    "features*",
+    #    "framework*",
+    #    "locators*",
+    #    "properties*",
+    "step_definitions*",
+    "build*",
+    "dist*",
+    "templates*",
+    "tests*",
+] }
