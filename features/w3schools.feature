@@ -16,7 +16,7 @@ Feature: Application Object Model demo feature
 #    }
     When w3schools learn html home page is opened
     Then w3schools learn html introduction page is opened
-    And w3schools learn html home page is opened
+    And w3schools learn html home page is opened from html introduction page
     And w3schools home page is opened
 #    Then w3schools application is closed
 
@@ -29,7 +29,7 @@ Feature: Application Object Model demo feature
 #    }
     When w3schools learn html home page is opened
     Then w3schools learn html introduction page is opened
-    And w3schools learn html home page is opened
+    And w3schools learn html home page is opened from html introduction page
     And w3schools home page is opened
 #    Then w3schools application is closed
 

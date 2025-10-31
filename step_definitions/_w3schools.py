@@ -2,7 +2,7 @@ from typing import Optional
 
 from selenium.common import StaleElementReferenceException, NoSuchElementException, TimeoutException
 
-from karta.web.factory import WebAUT, Page
+from karta.web.factory import WebAUT, Page, PageException
 from karta.web.models import WebDriverConfig
 
 
@@ -19,10 +19,35 @@ class W3SchoolsApp(WebAUT):
 
         self.load_locators_from_file(locator_file)
 
-    def initialize_application(self) -> Optional[Page]:
+    def initialize_application(self) -> "HomePage":
         self.init_web_driver()
         self.driver.get(self.url)
         return HomePage(self)
+
+    # Add properties for commonly accessed pages if needed
+    @property
+    def home_page(self) -> "HomePage":
+        # Check if current page is HomePage, if not raise an exception
+        if self.current_page and isinstance(self.current_page, HomePage):
+            return self.current_page
+        else:
+            raise PageException("Current page is not HomePage")
+
+    @property
+    def html_home_page(self) -> "HTMLHomePage":
+        # Check if current page is HTMLHomePage, if not raise an exception
+        if self.current_page and isinstance(self.current_page, HTMLHomePage):
+            return self.current_page
+        else:
+            raise PageException("Current page is not HTMLHomePage")
+
+    @property
+    def html_introduction_page(self) -> "HTMLIntroductionPage":
+        # Check if current page is HTMLIntroductionPage, if not raise an exception
+        if self.current_page and isinstance(self.current_page, HTMLIntroductionPage):
+            return self.current_page
+        else:
+            raise PageException("Current page is not HTMLIntroductionPage")
 
 
 class HomePage(Page):
@@ -40,7 +65,7 @@ class HomePage(Page):
         except (StaleElementReferenceException, NoSuchElementException, TimeoutException) as _:
             return False
 
-    def open_learn_html_page(self):
+    def open_learn_html_page(self) -> "HTMLHomePage":
         self.learn_html_button.click()
         return HTMLHomePage(self.application)
 
@@ -60,11 +85,11 @@ class HTMLHomePage(Page):
         except (StaleElementReferenceException, NoSuchElementException, TimeoutException) as _:
             return False
 
-    def open_home_page(self):
+    def open_home_page(self) -> "HomePage":
         self.logo.click()
         return HomePage(self.application)
 
-    def open_html_intro_page(self):
+    def open_html_intro_page(self) -> "HTMLIntroductionPage":
         self.html_introduction_button.click()
         return HTMLIntroductionPage(self.application)
 
@@ -84,10 +109,10 @@ class HTMLIntroductionPage(Page):
         except (StaleElementReferenceException, NoSuchElementException, TimeoutException) as _:
             return False
 
-    def open_home_page(self):
+    def open_home_page(self) -> "HomePage":
         self.logo.click()
         return HomePage(self.application)
 
-    def open_learn_html_page(self):
+    def open_learn_html_page(self) -> "HTMLHomePage":
         self.html_home_button.click()
         return HTMLHomePage(self.application)
