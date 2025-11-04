@@ -102,7 +102,7 @@ def create_web_driver(webdriver_config: WebDriverConfig):
         webdriver_service = webdriver_service_classmap[webdriver_config.browser](
             executable_path=webdriver_config.driver_location,
             port=webdriver_config.service_port,
-            args=webdriver_config.service_args,
+            service_args=webdriver_config.service_args,
             env=os.environ)
 
         webdriver = webdriver_classmap[webdriver_config.browser](service=webdriver_service,
