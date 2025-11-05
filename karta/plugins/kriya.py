@@ -1,5 +1,7 @@
 import itertools
+import os
 import re
+import sys
 import traceback
 from pathlib import Path
 from typing import Union, Callable
@@ -238,9 +240,20 @@ class Kriya(FeatureParser, StepRunner, TestLifecycleHook):
         # logger.info("Imported step definition package: %s", self.step_def_package)
         # self.dependency_injector.inject(*imported_modules)
 
+        # Import step definitions packaging by running exec import statement
+        import_statement = f"import {self.step_def_package}"
+        # Add current dicectory to sys.path to allow relative imports in step definition modules
+        if os.getcwd() not in sys.path:
+            sys.path.append(os.getcwd())
+        exec(import_statement)
+        # exec(f"from {self.step_def_package} import *")
+        logger.info("Locals is %s", locals())
+        globals()[self.step_def_package] = locals()[self.step_def_package]
+        logger.info("Imported step definition package: %s", self.step_def_package)
+        logger.info("Global step defintion paackage module exists: %s", self.step_def_package in globals().keys())
         # Search for python modules in step definitions folder
         step_definition_module_python_files = importutils.get_python_files(self.step_def_package)
-        # Scan for each python module if it has step definitions, add them to step definition mapping
+        # # Scan for each python module if it has step definitions, add them to step definition mapping
         for py_file in step_definition_module_python_files:
             module_name = Path(py_file).stem  # os.path.split(py_file)[-1].strip(".py")
             imported_module = importutils.import_module_from_file(module_name, py_file)
