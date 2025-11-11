@@ -1,7 +1,11 @@
 fastapi[standard]
-PyYAML
-pydantic
+numpy
+PILLOW
 ply
+pydantic
+pynput
+PyYAML
+mss
 starlette
 uvicorn
 selenium
