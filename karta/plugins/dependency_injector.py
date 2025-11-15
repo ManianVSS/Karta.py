@@ -1,6 +1,6 @@
 from typing import Optional, TypeVar
 
-from karta.core.interfaces.lifecycle import DependencyInjector
+from karta.core.interfaces.plugins import DependencyInjector
 from karta.core.utils.datautils import is_builtin_class_instance
 
 

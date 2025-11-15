@@ -1,23 +1,8 @@
 import abc
 from typing import Optional, Union
 
-from pydantic import BaseModel
-
+from karta.core.interfaces.plugins import Plugin
 from karta.core.models.test_catalog import TestStep, TestFeature, TestScenario
-
-
-class PluginConfig(BaseModel):
-    module_name: str
-    class_name: str
-    args: Optional[list] = []
-    kwargs: Optional[dict] = {}
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-
-class Plugin(metaclass=abc.ABCMeta):
-    pass
 
 
 class FeatureParser(Plugin):

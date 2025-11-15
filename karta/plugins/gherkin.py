@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from karta.core.models.plugins import FeatureParser
+from karta.core.interfaces.plugins import FeatureParser
 from karta.core.models.test_catalog import TestFeature
 from karta.parsers.gherkin.parser import GherkinParser
 

@@ -2,7 +2,7 @@ import queue
 from concurrent.futures.thread import ThreadPoolExecutor
 from datetime import datetime
 
-from karta.core.interfaces.lifecycle import TestLifecycleHook, TestEventListener
+from karta.core.interfaces.plugins import TestLifecycleHook, TestEventListener
 from karta.core.models.generic import Context
 from karta.core.models.test_catalog import TestFeature, TestScenario, TestStep
 from karta.core.models.test_execution import Run, StepResult, ScenarioResult, FeatureResult, RunResult

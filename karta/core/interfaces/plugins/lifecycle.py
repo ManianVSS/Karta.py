@@ -1,17 +1,7 @@
 import abc
 
-from karta.core.models.plugins import Plugin
+from karta.core.interfaces.plugins import Plugin
 from karta.core.models.generic import Context
-
-
-class DependencyInjector(Plugin):
-    @abc.abstractmethod
-    def register(self, name: str, value: object) -> object:
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def inject(self, *list_of_objects) -> bool:
-        raise NotImplementedError
 
 
 class TestLifecycleHook(Plugin):

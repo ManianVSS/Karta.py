@@ -3,7 +3,7 @@ from typing import Optional
 import yaml
 from pydantic import BaseModel
 
-from karta.core.models.plugins import PluginConfig
+from karta.core.interfaces.plugins import PluginConfig
 
 
 class KartaConfig(BaseModel):

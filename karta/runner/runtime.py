@@ -2,17 +2,17 @@ import itertools
 import pathlib
 import traceback
 from datetime import datetime
-from importlib import import_module
 from pathlib import Path
 from random import Random
 from typing import Union, Optional
 
 import yaml
 
-from karta.core.interfaces.lifecycle import DependencyInjector, TestEventListener, TestLifecycleHook
+from karta.core.interfaces.plugins import DependencyInjector, TestEventListener, TestLifecycleHook
+from karta.core.interfaces.plugins import StepRunner, FeatureParser, TestCatalogManager, Plugin, \
+    get_plugin_from_config
 from karta.core.models.generic import Context
-from karta.core.models.karta_config import KartaConfig, default_karta_config, PluginConfig
-from karta.core.models.plugins import StepRunner, FeatureParser, TestCatalogManager, Plugin
+from karta.core.models.karta_config import KartaConfig, default_karta_config
 from karta.core.models.test_catalog import TestFeature, TestStep, TestScenario, StepType
 from karta.core.models.test_execution import StepResult, ScenarioResult, FeatureResult, Run, RunResult
 from karta.core.utils.datautils import deep_update
@@ -20,37 +20,6 @@ from karta.core.utils.logger import logger
 from karta.core.utils.properties import read_properties
 from karta.plugins.dependency_injector import KartaDependencyInjector
 from karta.runner.events import EventProcessor
-
-
-def get_plugin_from_config(plugin_config: PluginConfig) -> Plugin:
-    plugin_module = import_module(plugin_config.module_name)
-    plugin_class = getattr(plugin_module, plugin_config.class_name, None)
-    args = plugin_config.args if plugin_config.args else []
-    kwargs = plugin_config.kwargs if plugin_config.kwargs else {}
-
-    # Check if the plugin class is found
-    if not plugin_class:
-        raise Exception(
-            f"Plugin class {plugin_config.class_name} not found in module {plugin_config.module_name}")
-
-    # Check that the plugin class is a subclass of Plugin
-    if not issubclass(plugin_class, Plugin):
-        raise Exception(
-            f"Plugin class {plugin_config.class_name} in module {plugin_config.module_name} is not a subclass of Plugin")
-
-    # Create an instance of the plugin class with the provided arguments
-    try:
-        # noinspection PyArgumentList
-        plugin = plugin_class(*args, **kwargs)
-    except Exception as e:
-        raise Exception(
-            f"Failed to create plugin instance {plugin_config.class_name} from module {plugin_config.module_name}: {str(e)}")
-
-    # Check if the plugin is an instance of Plugin
-    if not isinstance(plugin, Plugin):
-        raise Exception(f"Plugin {plugin_config.class_name} is not an instance of Plugin")
-
-    return plugin
 
 
 class KartaRuntime:
@@ -99,9 +68,7 @@ class KartaRuntime:
 
     def load_dependency_injector(self):
         if self.config.dependency_injector:
-            plugin = get_plugin_from_config(self.config.dependency_injector)
-            if not isinstance(plugin, DependencyInjector):
-                raise Exception("Passed plugin is not a DependencyInjector" + str(plugin.__class__))
+            plugin = get_plugin_from_config(self.config.dependency_injector, DependencyInjector)
             self.dependency_injector = plugin
         else:
             self.dependency_injector = KartaDependencyInjector()

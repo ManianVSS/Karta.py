@@ -2,7 +2,7 @@ import json
 
 from pydantic.v1.json import pydantic_encoder
 
-from karta.core.interfaces.lifecycle import TestEventListener, TestLifecycleHook
+from karta.core.interfaces.plugins import TestEventListener, TestLifecycleHook
 from karta.core.models.generic import Context
 from karta.core.utils.logger import logger
 

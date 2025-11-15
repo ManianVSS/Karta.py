@@ -8,9 +8,8 @@ from typing import Union, Callable
 
 import yaml
 
-from karta.core.interfaces.lifecycle import TestLifecycleHook, DependencyInjector
+from karta.core.interfaces.plugins import FeatureParser, StepRunner, TestLifecycleHook, DependencyInjector
 from karta.core.models.generic import Context
-from karta.core.models.plugins import FeatureParser, StepRunner
 from karta.core.models.test_catalog import TestFeature, TestStep
 from karta.core.utils import importutils
 from karta.core.utils.logger import logger
