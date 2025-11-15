@@ -3,17 +3,7 @@ from typing import Optional
 import yaml
 from pydantic import BaseModel
 
-from karta.core.models.generic import FunctionArgs
-
-
-class PluginConfig(BaseModel):
-    module_name: str
-    class_name: str
-    args: Optional[list] = []
-    kwargs: Optional[dict] = {}
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+from karta.core.models.plugins import PluginConfig
 
 
 class KartaConfig(BaseModel):

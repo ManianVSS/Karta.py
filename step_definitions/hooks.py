@@ -1,11 +1,11 @@
-from step_definitions._w3schools import W3SchoolsApp
 from karta.core.utils.logger import logger
 from karta.plugins.dependency_injector import Inject
 from karta.plugins.kriya import before_run, before_feature, before_scenario, after_scenario, after_feature, \
     after_run
 from karta.web.models import WebDriverConfig
+from step_definitions._w3schools import W3SchoolsApp
 
-test_properties = Inject("properties")
+test_properties = Inject("properties").get()
 
 
 @before_run()

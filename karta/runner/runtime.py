@@ -10,9 +10,9 @@ from typing import Union, Optional
 import yaml
 
 from karta.core.interfaces.lifecycle import DependencyInjector, TestEventListener, TestLifecycleHook
-from karta.core.interfaces.test_interfaces import StepRunner, FeatureParser, TestCatalogManager, Plugin
 from karta.core.models.generic import Context
 from karta.core.models.karta_config import KartaConfig, default_karta_config, PluginConfig
+from karta.core.models.plugins import StepRunner, FeatureParser, TestCatalogManager, Plugin
 from karta.core.models.test_catalog import TestFeature, TestStep, TestScenario, StepType
 from karta.core.models.test_execution import StepResult, ScenarioResult, FeatureResult, Run, RunResult
 from karta.core.utils.datautils import deep_update

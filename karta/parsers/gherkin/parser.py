@@ -79,7 +79,7 @@ class GherkinLexer(object):
     @TOKEN(r'(\s+)? ("""(.|\n)*""")|(```(.|\n)*```)')
     def t_DOC_STRING(self, t):
         t.lexer.lineno += t.value.count('\n')
-        doc_string = t.value.strip()
+        doc_string: str = t.value.strip()
         # TODO: Support docstring type annotation markdown and other types
         if doc_string.startswith(r'"""'):
             doc_string = doc_string.removeprefix(r'"""').removesuffix(r'"""').strip()

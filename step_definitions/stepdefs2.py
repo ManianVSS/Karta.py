@@ -4,7 +4,7 @@ from karta.core.utils.logger import logger
 from karta.plugins.dependency_injector import Inject
 from karta.plugins.kriya import step_def
 
-test_properties = Inject("properties")
+test_properties = Inject("properties").get()
 
 
 @step_def("my sample step definition3")

@@ -1,12 +1,18 @@
-from typing import Optional
+from typing import Optional, TypeVar
 
 from karta.core.interfaces.lifecycle import DependencyInjector
 from karta.core.utils.datautils import is_builtin_class_instance
 
 
 class Inject:
+    ANY_CLASS = TypeVar('ANY_CLASS')
+
     def __init__(self, name=None):
         self.name = name
+
+    def get(self) -> ANY_CLASS:
+        """ Returns self reference to avoid typing errors"""
+        return self
 
 
 class KartaDependencyInjector(DependencyInjector):

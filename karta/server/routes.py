@@ -7,9 +7,9 @@ from starlette.responses import FileResponse
 
 from karta.core.models.generic import Context
 from karta.core.models.test_catalog import TestFeature, TestScenario
-from karta.core.models.test_execution import StepResult, Run, FeatureResult, RunResult, ScenarioResult
+from karta.core.models.test_execution import StepResult, Run, FeatureResult, RunResult
 from karta.runner.runtime import karta_runtime
-from karta.server.models import FeatureRunInfo, FeatureSourceRunInfo, StepRunInfo, ScenarioRunInfo, TagRunInfo
+from karta.server.models import FeatureRunInfo, FeatureSourceRunInfo, StepRunInfo, TagRunInfo
 
 app = FastAPI(
     title="Karta.py",

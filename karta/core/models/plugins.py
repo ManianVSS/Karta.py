@@ -1,7 +1,19 @@
 import abc
-from typing import Optional
+from typing import Optional, Union
+
+from pydantic import BaseModel
 
 from karta.core.models.test_catalog import TestStep, TestFeature, TestScenario
+
+
+class PluginConfig(BaseModel):
+    module_name: str
+    class_name: str
+    args: Optional[list] = []
+    kwargs: Optional[dict] = {}
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
 
 class Plugin(metaclass=abc.ABCMeta):
@@ -32,7 +44,7 @@ class StepRunner(Plugin):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def run_step(self, step: TestStep, context: dict) -> (dict, bool, str):
+    def run_step(self, step: TestStep, context: dict) -> Union[tuple[dict, bool, str], bool]:
         raise NotImplementedError
 
 

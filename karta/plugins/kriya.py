@@ -9,8 +9,8 @@ from typing import Union, Callable
 import yaml
 
 from karta.core.interfaces.lifecycle import TestLifecycleHook, DependencyInjector
-from karta.core.interfaces.test_interfaces import FeatureParser, StepRunner
 from karta.core.models.generic import Context
+from karta.core.models.plugins import FeatureParser, StepRunner
 from karta.core.models.test_catalog import TestFeature, TestStep
 from karta.core.utils import importutils
 from karta.core.utils.logger import logger
@@ -233,11 +233,14 @@ class Kriya(FeatureParser, StepRunner, TestLifecycleHook):
         self.step_def_package = step_def_package
 
     def __post_inject__(self):
+        self.load_step_definitions()
+
+    def load_step_definitions(self):
         # imported_modules = importutils.import_all_modules_in_package(self.step_def_package)
         # # imported_modules = importutils.import_module_from_file(self.step_def_package,
         # #                                                        str(Path(os.getcwd(),
         # #                                                                 *self.step_def_package.split("."))))
-        # logger.info("Imported step definition package: %s", self.step_def_package)
+        # logger.debug("Imported step definition package: %s", self.step_def_package)
         # self.dependency_injector.inject(*imported_modules)
 
         # Import step definitions packaging by running exec import statement
@@ -246,11 +249,12 @@ class Kriya(FeatureParser, StepRunner, TestLifecycleHook):
         if os.getcwd() not in sys.path:
             sys.path.append(os.getcwd())
         exec(import_statement)
-        # exec(f"from {self.step_def_package} import *")
-        logger.info("Locals is %s", locals())
+        # logger.debug("Locals is %s", locals())
         globals()[self.step_def_package] = locals()[self.step_def_package]
-        logger.info("Imported step definition package: %s", self.step_def_package)
-        logger.info("Global step defintion paackage module exists: %s", self.step_def_package in globals().keys())
+
+        # logger.debug("Imported step definition package: %s", self.step_def_package)
+        # logger.debug("Global step defintion paackage module exists: %s", self.step_def_package in globals().keys())
+
         # Search for python modules in step definitions folder
         step_definition_module_python_files = importutils.get_python_files(self.step_def_package)
         # # Scan for each python module if it has step definitions, add them to step definition mapping

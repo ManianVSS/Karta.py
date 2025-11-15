@@ -3,7 +3,6 @@ from typing import Optional, Dict, Union
 
 from pydantic import BaseModel
 
-from karta.core.models.test_catalog import TestScenario
 from karta.core.utils.datautils import serialize_exception
 
 
@@ -120,6 +119,7 @@ class Run(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     tags: Optional[set[str]] = None
+
     # scenarios: Optional[set[TestScenario]] = set()
 
     def __init__(self, **kwargs):

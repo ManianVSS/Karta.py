@@ -7,7 +7,7 @@ from karta.core.utils.logger import logger
 from karta.plugins import kriya, dependency_injector
 from karta.runner import karta_main
 
-_plugin_modules = {
+_plugin_modules: dict[str, ModuleType] = {
     "karta.plguins.dependency_injector": dependency_injector,
     "karta.plguins.kriya": kriya,
 }

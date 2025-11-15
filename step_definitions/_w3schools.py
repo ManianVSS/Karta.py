@@ -1,5 +1,3 @@
-from typing import Optional
-
 from selenium.common import StaleElementReferenceException, NoSuchElementException, TimeoutException
 
 from karta.web.factory import WebAUT, Page, PageException

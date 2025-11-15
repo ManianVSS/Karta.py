@@ -21,7 +21,7 @@ from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.safari.options import Options as SafariOptions
 from selenium.webdriver.safari.service import Service as SafariService
 from selenium.webdriver.safari.webdriver import WebDriver as SafariDriver
-from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.ui import WebDriverWait
 
 from karta.web.models import WebDriverConfig, Browser, Locator
@@ -156,7 +156,7 @@ class Element:
         :return:
         """
         WebDriverWait(self.driver, timeout).until(
-            EC.visibility_of_element_located((self.locator.get_selenium_by())))
+            expected_conditions.visibility_of_element_located((self.locator.get_selenium_by())))
         return True
 
     def wait_for_clickable(self, timeout: int = 10) -> bool:
@@ -166,7 +166,7 @@ class Element:
         :return:
         """
         WebDriverWait(self.driver, timeout).until(
-            EC.element_to_be_clickable((self.locator.get_selenium_by())))
+            expected_conditions.element_to_be_clickable((self.locator.get_selenium_by())))
         return True
 
     def wait_for_invisibility(self, timeout: int = 10) -> bool:
@@ -176,7 +176,7 @@ class Element:
         :return:
         """
         WebDriverWait(self.driver, timeout).until(
-            EC.invisibility_of_element_located((self.locator.get_selenium_by())))
+            expected_conditions.invisibility_of_element_located((self.locator.get_selenium_by())))
         return True
 
     def click(self):

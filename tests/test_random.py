@@ -1,6 +1,7 @@
 from random import Random
 
-from karta.core.utils.randomization_utils import generate_next_composition_from_probability_map, generate_next_mutex_composition_from_probability_map
+from karta.core.utils.randomization_utils import generate_next_composition_from_probability_map, \
+    generate_next_mutex_composition_from_probability_map
 
 rng = Random()
 # for i in range(100):
@@ -36,14 +37,14 @@ normal_composition_deviation_map = {value: int(abs(round(probability_map[value] 
                                     (value, count) in
                                     generated_count_map.items()}
 
-probability_map = {
+probability_map: dict[str, float] = {
     "value1": 0.1,
     "value2": 0.2,
     "value3": 0.3,
     "value4": 0.4,
 }
 
-generated_count_map = {
+generated_count_map: dict[str, int] = {
     "value1": 0,
     "value2": 0,
     "value3": 0,

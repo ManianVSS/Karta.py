@@ -1,7 +1,10 @@
 from random import Random
+from typing import TypeVar
+
+ITEM = TypeVar('ITEM')
 
 
-def generate_next_composition_from_probability_map(probability_map: dict, random: Random) -> list[object]:
+def generate_next_composition_from_probability_map(probability_map: dict[ITEM, float], random: Random) -> list[ITEM]:
     chosen_objects = []
 
     if not probability_map or (len(probability_map) == 0):
@@ -19,7 +22,7 @@ def generate_next_composition_from_probability_map(probability_map: dict, random
     return chosen_objects
 
 
-def generate_next_mutex_composition_from_probability_map(probability_map: dict, random: Random) -> object:
+def generate_next_mutex_composition_from_probability_map(probability_map: dict[ITEM, float], random: Random) -> ITEM:
     if not probability_map or (len(probability_map) == 0):
         return None
 
@@ -40,7 +43,7 @@ def generate_next_mutex_composition_from_probability_map(probability_map: dict, 
     return return_value
 
 
-def generate_next_composition_from_objects(objects_with_probability: list[object], random: Random) -> list[object]:
+def generate_next_composition_from_objects(objects_with_probability: list[ITEM], random: Random) -> list[ITEM]:
     chosen_objects = []
 
     if not objects_with_probability or (len(objects_with_probability) == 0):
@@ -59,7 +62,7 @@ def generate_next_composition_from_objects(objects_with_probability: list[object
     return chosen_objects
 
 
-def generate_next_mutex_composition_from_objects(objects_with_probability: list[object], random: Random) -> object:
+def generate_next_mutex_composition_from_objects(objects_with_probability: list[ITEM], random: Random) -> ITEM:
     if not objects_with_probability or (len(objects_with_probability) == 0):
         return None
 

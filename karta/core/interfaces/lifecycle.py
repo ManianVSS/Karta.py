@@ -1,6 +1,6 @@
 import abc
 
-from karta.core.interfaces.test_interfaces import Plugin
+from karta.core.models.plugins import Plugin
 from karta.core.models.generic import Context
 
 

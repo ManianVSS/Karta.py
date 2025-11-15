@@ -4,8 +4,6 @@ import os
 
 from pathlib import Path
 
-from karta.core.utils.logger import logger
-
 
 def get_python_files(src='step_definitions'):
     folder_path = Path(src)
@@ -16,7 +14,7 @@ def get_python_files(src='step_definitions'):
 def import_module_from_file(module_name_to_import, py_path):
     module_spec = importlib.util.spec_from_file_location(module_name_to_import, py_path)
     module = importlib.util.module_from_spec(module_spec)
-    module_spec.loader.exec_module(module,)
+    module_spec.loader.exec_module(module, )
     return module
 
 

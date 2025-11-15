@@ -1,7 +1,7 @@
 import itertools
 from enum import Enum
 from random import Random
-from typing import Optional, Dict
+from typing import Optional
 
 from pydantic import BaseModel
 

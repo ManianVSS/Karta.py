@@ -1,6 +1,6 @@
 from typing import Optional
 
-from karta.core.interfaces.test_interfaces import TestCatalogManager
+from karta.core.models.plugins import TestCatalogManager
 from karta.core.models.test_catalog import TestFeature, TestScenario
 
 

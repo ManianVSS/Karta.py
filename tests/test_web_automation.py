@@ -2,9 +2,9 @@ import time
 
 import yaml
 
-from w3schools import W3SchoolsApp, HomePage, HTMLHomePage, HTMLIntroductionPage
 from karta.web.factory import create_web_driver, ChromeDriver
 from karta.web.models import WebDriverConfig, Browser, ScreenSize
+from w3schools import W3SchoolsApp, HomePage
 
 
 def test_chrome_driver_creation():
