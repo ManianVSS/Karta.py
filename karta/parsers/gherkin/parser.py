@@ -15,8 +15,8 @@ from karta.core.utils.logger import logger
 class GherkinLexer(object):
     # All tokens must be named in advance.
     tokens = (
-        'FEATURE', 'DESCRIPTION_LINE', 'BACKGROUND', 'SCENARIO', 'STEP', 'DOC_STRING', 'TABLE', 'SCENARIO_OUTLINE',
-        'EXAMPLES', 'TAG')
+        'FEATURE', 'DESCRIPTION_LINE', 'BACKGROUND', 'RULE', 'SCENARIO', 'STEP', 'DOC_STRING', 'TABLE',
+        'SCENARIO_OUTLINE', 'EXAMPLES', 'TAG')
 
     # Ignored token with an action associated with it
     @TOKEN(r'[\s]+')
@@ -45,6 +45,12 @@ class GherkinLexer(object):
     def t_BACKGROUND(self, t):
         # t.lexer.lineno += t.value.count('\n')
         t.value = t.value.strip()
+        return t
+
+    @TOKEN(r'(\s+)?Rule:([ \t]+)?[^\n]+')
+    def t_RULE(self, t):
+        # t.lexer.lineno += t.value.count('\n')
+        t.value = t.value.strip().removeprefix('Rule:')
         return t
 
     @TOKEN(r'(\s+)?(Scenario|Example):([ \t]+)?[^\n]+')
@@ -76,7 +82,8 @@ class GherkinLexer(object):
         t.value = t.value.strip()
         return t
 
-    @TOKEN(r'(\s+)? ("""(.|\n)*""")|(```(.|\n)*```)')
+    # @TOKEN(r'(\s+)? ("""(.|\n)*""")|(```(.|\n)*```)')
+    @TOKEN(r'("""[\s\S]*?""")|(\'\'\'[\s\S]*?\'\'\')|(```[\s\S]*?```)')
     def t_DOC_STRING(self, t):
         t.lexer.lineno += t.value.count('\n')
         doc_string: str = t.value.strip()
@@ -85,6 +92,8 @@ class GherkinLexer(object):
             doc_string = doc_string.removeprefix(r'"""').removesuffix(r'"""').strip()
         if doc_string.startswith(r'```'):
             doc_string = doc_string.removeprefix(r'```').removesuffix(r'```').strip()
+        if doc_string.startswith(r"'''"):
+            doc_string = doc_string.removeprefix(r"'''").removesuffix(r"'''").strip()
 
         doc_string_lines = doc_string.splitlines()
         t.value = ""
@@ -209,7 +218,15 @@ class GherkinParser(object):
     def p_background(self, p):
         """
         background : BACKGROUND steps
+                   | BACKGROUND description steps
         """
+        description = None
+        if p.slice[2].type == 'description':
+            description = p[2]
+            del p.slice[2]
+
+        # Nothing can be done with description for now
+
         p[0] = [*p[2]]
 
     def p_scenarios(self, p):
@@ -228,15 +245,22 @@ class GherkinParser(object):
     def p_scenario(self, p):
         """
         scenario : tags SCENARIO steps
+                 | tags SCENARIO description steps
                  | tags SCENARIO_OUTLINE steps EXAMPLES TABLE
+                 | tags SCENARIO_OUTLINE description steps EXAMPLES TABLE
         """
         tags = []
         if p.slice[1].type == 'tags':
             tags = p[1]
             del p.slice[1]
 
+        description = None
+        if p.slice[2].type == 'description':
+            description = p[2]
+            del p.slice[2]
+
         if p.slice[1].type == 'SCENARIO':
-            p[0] = TestScenario(name=p[1].strip(), steps=p[2], tags=tags, )
+            p[0] = TestScenario(name=p[1].strip(), description=description, steps=p[2], tags=tags, )
             p[0].line_number = p.slice[1].lineno
         else:
             table = p[4]
@@ -256,7 +280,7 @@ class GherkinParser(object):
                         table_data[i - 1][table[0][j]] = table[i][j]
                         scenario_step.name = scenario_step.name.replace("<" + table[0][j] + ">", table[i][j])
                     scenario_steps.append(scenario_step)
-                scenario = TestScenario(name=p[1].strip(), steps=scenario_steps, tags=tags, )
+                scenario = TestScenario(name=p[1].strip(), description=description, steps=scenario_steps, tags=tags, )
                 scenario.line_number = p.slice[1].lineno
                 scenarios.append(scenario)
 
@@ -315,84 +339,3 @@ class GherkinParser(object):
 
     def parse(self, source):
         return self.parser.parse(source)
-
-
-if __name__ == '__main__':
-    data = r'''
-     # fComment 2
-     @MyTag1 @MyTag2
-     @MyTag3
-    Feature: My feature
-        # Comment before description
-        This feature description describes the feature.
-        It is a multi line feature description.
-        
-         # Comment for Background ## Background:
-        Background:
-            Given background step1
-            And background step2
-            ```
-            Background step2?
-            ===============
-            This is the text block for background step2.
-            Which could span multiple lines.
-            ```
-            And background step3
-            | f1\|  |  f2\n |  f3\t |
-            | v11   |  v12  |  v13  |
-            | v21   |  v 22  |  v23  |
-            
-        # Comment 1
-      Example: My Scenario 1
-        
-        Given scenario 1 step 1
-        """
-        Scenario 1 step1?
-        ===============
-        This is the text block for Scenario 1 step1.
-        Which could span multiple lines.
-        """
-        When scenario 1 step 2
-          # sComment 1
-        Then scenario 1 step 3
-        
-    # Comment 2
-    @SMyTag1 @SMyTag2
-     @SMyTag3
-      Scenario: My Scenario 2
-        Given scenario 2 step 1
-        When scenario 2 step 2
-          # sComment 1
-        Then scenario 2 step 3
-        And scenario 2 step 4
-        But scenario 2 step 5
-        
-    # Comment 3
-    @SoMyTag1 @SoMyTag2
-     @SoMyTag3
-      Scenario Outline: My Scenario outline
-        Given <var1> scenario outline step 1
-        When scenario outline  step 2
-          # sComment 1
-        Then scenario outline  step 3
-        And <var2> scenario outline  step 4
-        But <var3> scenario outline  step 5
-        
-        Examples:
-        |var1   | var2  | var3       |
-        |value11 | value12 | value13 |
-        |value21 | value22 | value23 | 
-    '''
-
-    # # Give the lexer some input
-    # # Build the lexer object
-    gherkin_lexer = GherkinLexer()
-    gherkin_lexer.test(data)
-    gherkin_lexer.lexer.lineno = 1
-
-    # Build the parser
-    parser = GherkinParser()
-
-    # Parse an expression
-    ast = parser.parse(data)
-    logger.info(ast)

@@ -119,21 +119,3 @@ class TestFeature(TestNode):
             return randomization_utils.generate_next_composition_from_objects(self.scenarios, random)
         else:
             raise NotImplemented(f"Iteration policy {self.iteration_policy} is not implemented.")
-
-
-class FeatureExecutionProfile(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    scenarios: Optional[list[str]] = []
-    number_of_iterations: Optional[int] = 1
-    iteration_policy: Optional[IterationPolicy] = IterationPolicy.ALL_PER_ITERATION
-    probability_map: Optional[dict[float, str]] = {}
-
-
-class TestExecutionProfile(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    features: Optional[list[FeatureExecutionProfile]] = []
-    number_of_iterations: Optional[int] = 1
-    iteration_policy: Optional[IterationPolicy] = IterationPolicy.ALL_PER_ITERATION
-    probability_map: Optional[dict[float, FeatureExecutionProfile]] = {}
