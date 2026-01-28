@@ -13,7 +13,7 @@ from karta.core.interfaces.plugins import StepRunner, FeatureParser, TestCatalog
     get_plugin_from_config
 from karta.core.models.generic import Context
 from karta.core.models.karta_config import KartaConfig, default_karta_config
-from karta.core.models.test_catalog import TestFeature, TestStep, TestScenario, StepType
+from karta.core.models.test_catalog import Feature, Step, Scenario, StepType
 from karta.core.models.test_execution import StepResult, ScenarioResult, FeatureResult, Run, RunResult
 from karta.core.utils.datautils import deep_update
 from karta.core.utils.logger import logger
@@ -150,17 +150,17 @@ class KartaRuntime:
             steps.extend(step_runner.get_steps())
         return steps
 
-    def run_step(self, run: Run, feature_name: str, iteration_index: int, scenario_name: str, step: TestStep,
+    def run_step(self, run: Run, feature_name: str, iteration_index: int, scenario_name: str, step: Step,
                  scenario_context: Context) -> Union[StepResult, bool]:
         # logger.info('Running step %s', str(step.name))
-        step_result = StepResult(name=step.name, )
+        step_result = StepResult(name=step.identifier, )
         step_result.source = step.source
         step_result.line_number = step.line_number
         step_result.start_time = datetime.now()
 
-        step_runner = self.find_step_runner_for_step(step.name.strip())
+        step_runner = self.find_step_runner_for_step(step.identifier.strip())
         if step_runner is None:
-            raise Exception("Unimplemented step: " + step.name)
+            raise Exception("Unimplemented step: " + step.identifier)
         self.event_processor.step_start(run, feature_name, iteration_index, scenario_name, step, scenario_context)
         scenario_context.step_data = step.data_rules.generate_next_value(self.random) if step.data_rules else {}
 
@@ -222,8 +222,8 @@ class KartaRuntime:
                                            scenario_context)
         return step_result
 
-    def run_scenario(self, run: Run, feature_name: str, setup_steps: list[TestStep], iteration_index: int,
-                     scenario: TestScenario, feature_context: Context, ):
+    def run_scenario(self, run: Run, feature_name: str, setup_steps: list[Step], iteration_index: int,
+                     scenario: Scenario, feature_context: Context, ):
         scenario_result = ScenarioResult(name=scenario.name, )
         scenario_result.source = scenario.source
         scenario_result.line_number = scenario.line_number
@@ -248,8 +248,8 @@ class KartaRuntime:
                                                scenario_context)
         return scenario_result
 
-    def run_scenarios(self, run: Run, scenarios: set[TestScenario], run_context: Context, ) -> RunResult:
-        feature_to_scenario_map: dict[TestFeature, set[TestScenario]] = {}
+    def run_scenarios(self, run: Run, scenarios: set[Scenario], run_context: Context, ) -> RunResult:
+        feature_to_scenario_map: dict[Feature, set[Scenario]] = {}
         run_result = RunResult()
         run_result.start_time = datetime.now()
 
@@ -269,7 +269,7 @@ class KartaRuntime:
             # logger.info('Running feature %s', str(feature.name))
             self.event_processor.feature_start(run, feature, feature_context)
             for scenario in feature_to_scenario_map[feature]:
-                scenario_result = self.run_scenario(run, feature.name, feature.setup_steps, 0, scenario,
+                scenario_result = self.run_scenario(run, feature.name, feature.background.steps, 0, scenario,
                                                     feature_context)
                 feature_result.add_scenario_result(scenario_result)
             feature_result.end_time = datetime.now()
@@ -279,7 +279,7 @@ class KartaRuntime:
         run_result.end_time = datetime.now()
         return run_result
 
-    def run_feature(self, run: Run, feature: TestFeature, run_context: Context, ) -> FeatureResult:
+    def run_feature(self, run: Run, feature: Feature, run_context: Context, ) -> FeatureResult:
         feature_result = FeatureResult(name=feature.name)
         feature_result.source = feature.source
         feature_result.line_number = feature.line_number
@@ -295,7 +295,7 @@ class KartaRuntime:
             self.event_processor.feature_iteration_start(run, feature, index, scenarios, feature_context)
             iteration_results = []
             for scenario in scenarios:
-                scenario_result = self.run_scenario(run, feature.name, feature.setup_steps, index, scenario,
+                scenario_result = self.run_scenario(run, feature.name, feature.background.steps, index, scenario,
                                                     feature_context)
                 iteration_results.append(scenario_result)
                 feature_result.add_scenario_result(scenario_result, index)
@@ -332,7 +332,7 @@ class KartaRuntime:
         self.event_processor.run_complete(run, run_result, run_context)
         return run_result
 
-    def filter_with_tags(self, tags: set[str]) -> set[TestScenario]:
+    def filter_with_tags(self, tags: set[str]) -> set[Scenario]:
         return self.test_catalog_manager.filter_with_tags(tags)
 
     def run_tags(self, tags: set[str], run_name: str = None, run_description: str = None, context=None) -> RunResult:

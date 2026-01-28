@@ -4,23 +4,48 @@ from copy import deepcopy
 from ply.lex import lex, TOKEN
 from ply.yacc import yacc
 
-from karta.core.models.test_catalog import TestFeature, TestScenario, TestStep
+from karta.core.models.test_catalog import Feature, Scenario, Step, Background, Rule
 from karta.core.utils.funcutils import wrap_function_before
 from karta.core.utils.logger import logger
 
 
-# --- Tokenizer
+def unescape(string):
+    escape_map = {
+        "\\n": "\n",
+        "\\r": "\r",
+        "\\b": "\b",
+        "\\t": "\t",
+        "\\|": "|",
+        "\\\"": "\"",
+        "\\\'": "\'",
+    }
+    string = str(string).strip()
+    for unescape_key in escape_map.keys():
+        string = string.replace(unescape_key, escape_map[unescape_key])
+    return string
 
+
+# --- Tokenizer
 # noinspection PyPep8Naming,PyMethodMayBeStatic,PyTypeChecker
 class GherkinLexer(object):
     # All tokens must be named in advance.
     tokens = (
-        'FEATURE', 'DESCRIPTION_LINE', 'BACKGROUND', 'RULE', 'SCENARIO', 'STEP', 'DOC_STRING', 'TABLE',
-        'SCENARIO_OUTLINE', 'EXAMPLES', 'TAG')
+        'FEATURE',
+        'DESCRIPTION_LINE',
+        'BACKGROUND',
+        'RULE',
+        'SCENARIO',
+        'STEP',
+        'DOC_STRING',
+        'TABLE',
+        'SCENARIO_OUTLINE',
+        'EXAMPLES',
+        'TAG'
+    )
 
     # Ignored token with an action associated with it
     @TOKEN(r'[\s]+')
-    def t_ignore_newline(self, t):
+    def t_ignore_whitespaces(self, t):
         t.lexer.lineno += t.value.count('\n')
         pass
 
@@ -102,21 +127,6 @@ class GherkinLexer(object):
         t.value = '\n'.join(doc_string_lines)
         return t
 
-    def unescape(self, string):
-        escape_map = {
-            "\\n": "\n",
-            "\\r": "\r",
-            "\\b": "\b",
-            "\\t": "\t",
-            "\\|": "|",
-            "\\\"": "\"",
-            "\\\'": "\'",
-        }
-        string = str(string).strip()
-        for unescape_key in escape_map.keys():
-            string = string.replace(unescape_key, escape_map[unescape_key])
-        return string
-
     @TOKEN(r'(((\s+)?\|.*\|(\s+)?)\n?)+')
     def t_TABLE(self, t):
         t.lexer.lineno += t.value.count('\n')
@@ -125,7 +135,7 @@ class GherkinLexer(object):
         t.value = []
         for table_line in table_lines:
             columns = re.findall(r'(?<=\|)(?:\\\||\\n|\\t|[\w\s])*?(?=\|)', table_line.strip())
-            t.value.append([self.unescape(column) for column in columns if column != '|'])
+            t.value.append([unescape(column) for column in columns if column != '|'])
         return t
 
     @TOKEN(r'(\s+)?[^\n]+')
@@ -173,6 +183,10 @@ class GherkinParser(object):
                 | tags FEATURE description scenarios
                 | tags FEATURE background scenarios
                 | tags FEATURE description background scenarios
+                | tags FEATURE rules
+                | tags FEATURE description rules
+                | tags FEATURE background rules
+                | tags FEATURE description background rules
         """
         tags = []
         if p.slice[1].type == 'tags':
@@ -184,13 +198,24 @@ class GherkinParser(object):
             description = p[2]
             del p.slice[2]
 
-        background_steps = []
+        background = None
         if p.slice[2].type == 'background':
-            background_steps = [*p[2]]
+            background = p[2]
             del p.slice[2]
 
-        p[0] = TestFeature(name=p[1].strip(), description=description, setup_steps=background_steps, scenarios=p[2],
-                           tags=tags, )
+        rules = None
+        scenarios = None
+        if p.slice[2].type == 'rules':
+            rules = p[2]
+            del p.slice[2]
+        elif p.slice[2].type == 'scenarios':
+            scenarios = p[2]
+            del p.slice[2]
+        else:
+            raise Exception(f"Invalid feature structure. Unknown type {p.slice[2].type}.")
+
+        p[0] = Feature(name=p[1].strip(), description=description, background=background, scenarios=scenarios,
+                       rules=rules, tags=tags, )
         p[0].line_number = p.slice[1].lineno
 
     def p_description(self, p):
@@ -203,8 +228,11 @@ class GherkinParser(object):
             p[0] = p[0] + '\n' + p[2]
 
     def p_empty(self, p):
-        """empty :"""
-        pass
+        """
+        empty :
+        """
+        p[0] = None
+        return
 
     def p_tags(self, p):
         """
@@ -227,7 +255,45 @@ class GherkinParser(object):
 
         # Nothing can be done with description for now
 
-        p[0] = [*p[2]]
+        p[0] = Background(description=description, steps=p[2], )
+        p[0].line_number = p.slice[1].lineno
+
+    def p_rules(self, p):
+        """
+        rules : rule
+              | rule rules
+        """
+        p[0] = [p[1]]
+        if len(p) > 2:
+            for item in p[2]:
+                p[0].append(item)
+
+    def p_rule(self, p):
+        """
+        rule : RULE scenarios
+             | RULE description scenarios
+             | RULE background scenarios
+             | RULE description background scenarios
+        """
+        description = None
+        if p.slice[2].type == 'description':
+            description = p[2]
+            del p.slice[2]
+
+        background = None
+        if p.slice[2].type == 'background':
+            background = p[2]
+            del p.slice[2]
+
+        scenarios = []
+        for scenario in p[2]:
+            if isinstance(scenario, Scenario):
+                scenarios.append(scenario)
+            else:
+                scenarios.extend(scenario)
+
+        p[0] = Rule(name=p[1].strip(), description=description, background=background, scenarios=scenarios, )
+        p[0].line_number = p.slice[1].lineno
 
     def p_scenarios(self, p):
         """
@@ -237,7 +303,7 @@ class GherkinParser(object):
         p[0] = [p[1]]
         if len(p) > 2:
             for item in p[2]:
-                if isinstance(item, TestScenario):
+                if isinstance(item, Scenario):
                     p[0].append(item)
                 else:
                     p[0].extend(item)
@@ -260,7 +326,7 @@ class GherkinParser(object):
             del p.slice[2]
 
         if p.slice[1].type == 'SCENARIO':
-            p[0] = TestScenario(name=p[1].strip(), description=description, steps=p[2], tags=tags, )
+            p[0] = Scenario(name=p[1].strip(), description=description, steps=p[2], tags=tags, )
             p[0].line_number = p.slice[1].lineno
         else:
             table = p[4]
@@ -278,9 +344,10 @@ class GherkinParser(object):
                     scenario_step = deepcopy(template_step)
                     for j in range(len(table[i])):
                         table_data[i - 1][table[0][j]] = table[i][j]
-                        scenario_step.name = scenario_step.name.replace("<" + table[0][j] + ">", table[i][j])
+                        scenario_step.identifier = scenario_step.identifier.replace("<" + table[0][j] + ">",
+                                                                                    table[i][j])
                     scenario_steps.append(scenario_step)
-                scenario = TestScenario(name=p[1].strip(), description=description, steps=scenario_steps, tags=tags, )
+                scenario = Scenario(name=p[1].strip(), description=description, steps=scenario_steps, tags=tags, )
                 scenario.line_number = p.slice[1].lineno
                 scenarios.append(scenario)
 
@@ -303,11 +370,11 @@ class GherkinParser(object):
              | STEP DOC_STRING
              | STEP DOC_STRING TABLE
         """
-        name = p[1]
+        identifier = p[1]
         step_conjunction = None
         for conjunction in self.conjunctions:
-            if name.startswith(conjunction):
-                step_conjunction, name = (conjunction, name.removeprefix(conjunction).strip())
+            if identifier.startswith(conjunction):
+                step_conjunction, identifier = (conjunction, identifier.removeprefix(conjunction).strip())
         doc_string = None
         if len(p) > 2:
             if p.slice[2].type == 'DOC_STRING':
@@ -326,8 +393,8 @@ class GherkinParser(object):
                 for j in range(len(table[i])):
                     table_data[i - 1][table[0][j]] = table[i][j]
 
-        p[0] = TestStep(conjunction=step_conjunction, name=name, text=doc_string,
-                        data={'table_data': table_data} if (table_data and len(table_data) > 0) else {}, )
+        p[0] = Step(conjunction=step_conjunction, identifier=identifier, text=doc_string,
+                    data={'table_data': table_data} if (table_data and len(table_data) > 0) else {}, )
         p[0].line_number = p.slice[1].lineno
 
     def p_error(self, p):

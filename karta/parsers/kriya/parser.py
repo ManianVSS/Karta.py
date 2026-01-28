@@ -1,7 +1,7 @@
 from ply.lex import lex, TOKEN
 from ply.yacc import yacc
 
-from karta.core.models.test_catalog import TestFeature, TestScenario, TestStep, StepType, IterationPolicy
+from karta.core.models.test_catalog import Feature, Scenario, Step, StepType, IterationPolicy, Background, Rule
 from karta.core.models.testdata import GeneratedObjectValue, ListDataValue, IntegerRangeValue, FloatRangeValue, \
     RandomStringValue, OneSelectedFromListValue, SomeSelectedFromListValue, ProbabilityMapOneValue, \
     ProbabilityMapSomeValue
@@ -34,6 +34,7 @@ class KriyaLexer(object):
         'ITERATIONS',
         'ITERATION_POLICY',
         'BACKGROUND',
+        'RULE',
         'SCENARIO',
         "PROBABILITY",
         'STEP',
@@ -70,6 +71,7 @@ class KriyaLexer(object):
         "DATA_PROBABILITY_PERCENT",
 
         "IDENTIFIER",
+        # 'DESCRIPTION_LINE',
     )
 
     # brackets regex
@@ -119,6 +121,12 @@ class KriyaLexer(object):
         t.value = t.value.strip().removeprefix('Feature:').strip()
         return t
 
+    @TOKEN(r'Background:')
+    def t_BACKGROUND(self, t):
+        # t.lexer.lineno += t.value.count('\n')
+        t.value = t.value.strip()
+        return t
+
     @TOKEN(r'Iterations:([ \t]+)?[^\n]+')
     def t_ITERATIONS(self, t):
         t.value = t.value.strip().removeprefix('Iterations:').strip()
@@ -138,10 +146,12 @@ class KriyaLexer(object):
             raise SyntaxError(f"Invalid ScenarioRunPerIteration value: {t.value}")
         return t
 
-    @TOKEN(r'Background:')
-    def t_BACKGROUND(self, t):
+
+
+    @TOKEN(r'(\s+)?Rule:([ \t]+)?[^\n]+')
+    def t_RULE(self, t):
         # t.lexer.lineno += t.value.count('\n')
-        t.value = t.value.strip()
+        t.value = t.value.strip().removeprefix('Rule:')
         return t
 
     @TOKEN(r'(Scenario|Example):([ \t]+)?[^\n]+')
@@ -186,7 +196,8 @@ class KriyaLexer(object):
         t.value = t.value.strip()
         return t
 
-    @TOKEN(r'("""(.|\n|\s)+?(?=""")""")|(```(.|\n|\s)+?(?=```)```)')
+    # @TOKEN(r'(\s+)? ("""(.|\n)*""")|(```(.|\n)*```)')
+    @TOKEN(r'("""[\s\S]*?""")|(\'\'\'[\s\S]*?\'\'\')|(```[\s\S]*?```)')
     def t_DOC_STRING(self, t):
         t.lexer.lineno += t.value.count('\n')
         doc_string: str = t.value.strip()
@@ -239,6 +250,12 @@ class KriyaLexer(object):
         t.value = t.value.strip().removeprefix('Steps:').strip()
         return t
 
+    # @TOKEN(r'(\s+)?[^\n]+')
+    # def t_DESCRIPTION_LINE(self, t):
+    #     # t.lexer.lineno += t.value.count('\n')
+    #     t.value = t.value.strip()
+    #     return t
+
     # Error handler for illegal characters
     def t_error(self, t):
         logger.error(f'Illegal character {t.value[0]!r}')
@@ -279,12 +296,14 @@ class KriyaParser(object):
         feature : tags FEATURE scenarios
                 | tags FEATURE ITERATIONS scenarios
                 | tags FEATURE ITERATIONS ITERATION_POLICY scenarios
-                | tags FEATURE DOC_STRING scenarios
-                | tags FEATURE DOC_STRING ITERATIONS scenarios
-                | tags FEATURE DOC_STRING ITERATIONS ITERATION_POLICY scenarios
+
                 | tags FEATURE background scenarios
                 | tags FEATURE ITERATIONS background scenarios
                 | tags FEATURE ITERATIONS ITERATION_POLICY background scenarios
+
+                | tags FEATURE DOC_STRING scenarios
+                | tags FEATURE DOC_STRING ITERATIONS scenarios
+                | tags FEATURE DOC_STRING ITERATIONS ITERATION_POLICY scenarios
                 | tags FEATURE DOC_STRING background scenarios
                 | tags FEATURE DOC_STRING ITERATIONS background scenarios
                 | tags FEATURE DOC_STRING ITERATIONS ITERATION_POLICY background scenarios
@@ -295,7 +314,7 @@ class KriyaParser(object):
             del p.slice[1]
 
         description = None
-        if p.slice[2].type == 'DOC_STRING':
+        if (p.slice[2].type == 'DOC_STRING') or (p.slice[2].type == 'description'):
             description = p[2]
             del p.slice[2]
 
@@ -309,14 +328,24 @@ class KriyaParser(object):
             iteration_policy = p[2]
             del p.slice[2]
 
-        background_steps = []
+        background = None
         if p.slice[2].type == 'background':
-            background_steps = [*p[2]]
+            background = p[2]
             del p.slice[2]
 
-        p[0] = TestFeature(name=p[1].strip(), description=description, iterations=iterations,
-                           iteration_policy=iteration_policy, setup_steps=background_steps, scenarios=p[2], tags=tags, )
+
+        p[0] = Feature(name=p[1].strip(), description=description, iterations=iterations,
+                       iteration_policy=iteration_policy, background=background, scenarios=p[2], tags=tags, )
         p[0].line_number = p.slice[1].lineno
+
+    # def p_description(self, p):
+    #     """
+    #     description : DESCRIPTION_LINE
+    #                 | DESCRIPTION_LINE description
+    #     """
+    #     p[0] = p[1]
+    #     if len(p) > 2:
+    #         p[0] = p[0] + '\n' + p[2]
 
     def p_empty(self, p):
         """
@@ -337,8 +366,19 @@ class KriyaParser(object):
     def p_background(self, p):
         """
         background : BACKGROUND steps
+                   | BACKGROUND DOC_STRING steps
         """
-        p[0] = [*p[2]]
+        description = None
+        if (p.slice[2].type == 'DOC_STRING') or (p.slice[2].type == 'description'):
+            description = p[2]
+            del p.slice[2]
+
+        # Nothing can be done with description for now
+
+        p[0] = Background(description=description, steps=p[2], )
+        p[0].line_number = p.slice[1].lineno
+
+
 
     def p_scenarios(self, p):
         """
@@ -348,7 +388,7 @@ class KriyaParser(object):
         p[0] = [p[1]]
         if len(p) > 2:
             for item in p[2]:
-                if isinstance(item, TestScenario):
+                if isinstance(item, Scenario):
                     p[0].append(item)
                 else:
                     p[0].extend(item)
@@ -366,7 +406,7 @@ class KriyaParser(object):
             del p.slice[1]
 
         description = None
-        if p.slice[2].type == 'DOC_STRING':
+        if (p.slice[2].type == 'DOC_STRING') or (p.slice[2].type == 'description'):
             description = p[2]
             del p.slice[2]
 
@@ -375,7 +415,7 @@ class KriyaParser(object):
             probability = p[2]
             del p.slice[2]
 
-        p[0] = TestScenario(name=p[1].strip(), steps=p[2], tags=tags, description=description, probability=probability)
+        p[0] = Scenario(name=p[1].strip(), steps=p[2], tags=tags, description=description, probability=probability)
         p[0].line_number = p.slice[1].lineno
 
     def p_steps(self, p):
@@ -397,24 +437,24 @@ class KriyaParser(object):
              | LOOP STEPS LEFT_CURLY_BRACE steps RIGHT_CURLY_BRACE
              | LOOP data_object STEPS LEFT_CURLY_BRACE steps RIGHT_CURLY_BRACE
         """
-        name = p[1]
+        identifier = p[1]
         step_conjunction = None
         step_type = None
         if p.slice[1].type == 'STEP':
             step_type = StepType.STEP
             for conjunction in self.conjunctions:
-                if name.startswith(conjunction):
-                    step_conjunction, name = (conjunction, name.removeprefix(conjunction).strip())
+                if identifier.startswith(conjunction):
+                    step_conjunction, identifier = (conjunction, identifier.removeprefix(conjunction).strip())
         elif p.slice[1].type == 'CONDITION':
             step_type = StepType.CONDITION
             for conjunction in self.condition_conjunctions:
-                if name.startswith(conjunction):
-                    step_conjunction, name = (conjunction, name.removeprefix(conjunction).strip())
+                if identifier.startswith(conjunction):
+                    step_conjunction, identifier = (conjunction, identifier.removeprefix(conjunction).strip())
         elif p.slice[1].type == 'LOOP':
             step_type = StepType.LOOP
             for conjunction in self.loop_conjunctions:
-                if name.startswith(conjunction):
-                    step_conjunction, name = (conjunction, name.removeprefix(conjunction).strip())
+                if identifier.startswith(conjunction):
+                    step_conjunction, identifier = (conjunction, identifier.removeprefix(conjunction).strip())
         doc_string = None
         if len(p) > 2:
             if p.slice[2].type == 'DOC_STRING':
@@ -432,8 +472,8 @@ class KriyaParser(object):
             if p.slice[2].type == 'STEPS':
                 nested_steps = p[4]
 
-        p[0] = TestStep(type=step_type, conjunction=step_conjunction, name=name, data_rules=data_rules,
-                        steps=nested_steps if len(nested_steps) > 0 else None)
+        p[0] = Step(type=step_type, conjunction=step_conjunction, identifier=identifier, data_rules=data_rules,
+                    steps=nested_steps if len(nested_steps) > 0 else None)
         p[0].line_number = p.slice[1].lineno
 
     def p_data_object(self, p):

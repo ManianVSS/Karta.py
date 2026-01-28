@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from karta.core.interfaces.plugins import FeatureParser
-from karta.core.models.test_catalog import TestFeature
+from karta.core.models.test_catalog import Feature
 from karta.parsers.gherkin.parser import GherkinParser
 
 
@@ -15,18 +15,18 @@ class GherkinPlugin(FeatureParser):
     def get_steps(self):
         return self.step_definition_mapping
 
-    def parse_feature(self, feature_source: str) -> TestFeature:
+    def parse_feature(self, feature_source: str) -> Feature:
         feature_object = self.parser.parse(feature_source)
         return feature_object
 
-    def parse_feature_file(self, feature_file: str) -> TestFeature:
+    def parse_feature_file(self, feature_file: str) -> Feature:
         with open(feature_file, "r") as stream:
             parsed_feature = self.parse_feature(stream.read())
             # str(Path(feature_file).resolve())
             parsed_feature.source = feature_file
             return parsed_feature
 
-    def get_features(self, ) -> list[TestFeature]:
+    def get_features(self, ) -> list[Feature]:
         parsed_features = []
         folder_path = Path(self.feature_directory)
         for file in folder_path.glob("**/*.feature"):

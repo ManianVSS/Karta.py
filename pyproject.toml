@@ -24,17 +24,18 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: PyPy",
     "Topic :: Software Development :: Testing",
 ]
-dependencies = [
-    "fastapi[standard]",
-    "PyYAML",
-    "pydantic",
-    "ply",
-    "starlette",
-    "uvicorn",
-    "selenium",
-    "selenium-page-factory",
-    "pyinstaller",
-]
+#dependencies = [
+#    "fastapi[standard]",
+#    "PyYAML",
+#    "pydantic",
+#    "ply",
+#    "starlette",
+#    "uvicorn",
+#    "selenium",
+#    "selenium-page-factory",
+#    "pyinstaller",
+#]
+
 [project.urls]
 "Homepage" = "https://github.com/ManianVSS/Karta.py"
 "Documentation" = "https://github.com/ManianVSS/Karta.py/wiki"
@@ -43,12 +44,14 @@ dependencies = [
 [project.scripts]
 karta = "karta:main"
 karta-server = "karta.server:main"
-#
-#[build-system]
-#requires = ["setuptools", "wheel"]
-#build-backend = "setuptools.build_meta"
-#
-#
+
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.dynamic]
+dependencies = { file = "requirements.txt" }
+
 [tool.setuptools.packages]
 find = { where = ["."], exclude = [
     #    "app_object_factory*",

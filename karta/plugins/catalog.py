@@ -1,13 +1,13 @@
 from typing import Optional
 
 from karta.core.interfaces.plugins import TestCatalogManager
-from karta.core.models.test_catalog import TestFeature, TestScenario
+from karta.core.models.test_catalog import Feature, Scenario
 
 
 class KartaTestCatalogManager(TestCatalogManager):
-    feature_map: dict[str, set[TestFeature]] = {}
-    scenario_map: dict[str, set[TestScenario]] = {}
-    scenario_to_feature_map: dict[TestScenario, TestFeature] = {}
+    feature_map: dict[str, set[Feature]] = {}
+    scenario_map: dict[str, set[Scenario]] = {}
+    scenario_to_feature_map: dict[Scenario, Feature] = {}
 
     def list_scenarios(self):
         return self.scenario_map
@@ -15,7 +15,7 @@ class KartaTestCatalogManager(TestCatalogManager):
     def list_features(self):
         return self.feature_map
 
-    def add_features(self, features: list[TestFeature], ) -> bool:
+    def add_features(self, features: list[Feature], ) -> bool:
         for feature in features:
             if feature.name not in self.feature_map.keys():
                 self.feature_map[feature.name] = set()
@@ -34,7 +34,7 @@ class KartaTestCatalogManager(TestCatalogManager):
             self.add_scenarios(feature.scenarios)
         return True
 
-    def add_scenarios(self, scenarios: set[TestScenario], ) -> bool:
+    def add_scenarios(self, scenarios: set[Scenario], ) -> bool:
         for scenario in scenarios:
             if scenario.name not in self.scenario_map.keys():
                 self.scenario_map[scenario.name] = set()
@@ -46,7 +46,7 @@ class KartaTestCatalogManager(TestCatalogManager):
                     self.scenario_map[tag].add(scenario)
         return True
 
-    def filter_with_tags(self, tags: set[str]) -> set[TestScenario]:
+    def filter_with_tags(self, tags: set[str]) -> set[Scenario]:
         filtered_scenarios = set()
         for tag in tags:
             if tag in self.scenario_map.keys():
@@ -54,7 +54,7 @@ class KartaTestCatalogManager(TestCatalogManager):
 
         return filtered_scenarios
 
-    def get_feature_for_scenario(self, scenario: TestScenario) -> Optional[TestFeature]:
+    def get_feature_for_scenario(self, scenario: Scenario) -> Optional[Feature]:
         """
         Get the feature for a given scenario
         :param scenario: The scenario to get the feature for

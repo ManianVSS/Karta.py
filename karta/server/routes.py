@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from starlette.responses import FileResponse
 
 from karta.core.models.generic import Context
-from karta.core.models.test_catalog import TestFeature, TestScenario
+from karta.core.models.test_catalog import Feature, Scenario
 from karta.core.models.test_execution import StepResult, Run, FeatureResult, RunResult
 from karta.runner.runtime import karta_runtime
 from karta.server.models import FeatureRunInfo, FeatureSourceRunInfo, StepRunInfo, TagRunInfo
@@ -125,7 +125,7 @@ async def run_step_api(step_run_info: StepRunInfo) -> StepResult:
     try:
         return karta_runtime.run_step(run, feature_name, iteration_index, scenario_name, step, context)
     except Exception as e:
-        step_result = StepResult(name=step.name)
+        step_result = StepResult(name=step.identifier)
         step_result.start_time = start_time
         step_result.successful = False
         step_result.error = str(e) + "\n" + traceback.format_exc()
@@ -134,10 +134,10 @@ async def run_step_api(step_run_info: StepRunInfo) -> StepResult:
 
 
 @app.get("/list_scenarios")
-async def list_scenarios() -> list[TestScenario]:
+async def list_scenarios() -> list[Scenario]:
     return karta_runtime.test_catalog_manager.list_scenarios()
 
 
 @app.get("/list_features")
-async def list_features() -> dict[str, TestFeature]:
+async def list_features() -> dict[str, Feature]:
     return karta_runtime.test_catalog_manager.list_features()

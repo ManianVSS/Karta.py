@@ -2,7 +2,7 @@ from typing import Optional
 
 from pydantic import BaseModel
 
-from karta.core.models.test_catalog import TestFeature, TestStep, TestScenario
+from karta.core.models.test_catalog import Feature, Step, Scenario
 
 
 class RunInfo(BaseModel):
@@ -22,7 +22,7 @@ class TagRunInfo(RunInfo):
 
 
 class FeatureRunInfo(RunInfo):
-    feature: TestFeature
+    feature: Feature
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -36,7 +36,7 @@ class FeatureSourceRunInfo(RunInfo):
 
 
 class ScenarioRunInfo(RunInfo):
-    scenario: TestScenario
+    scenario: Scenario
     feature_name: Optional[str] = None
     iteration_index: Optional[int] = 0
 
@@ -45,7 +45,7 @@ class ScenarioRunInfo(RunInfo):
 
 
 class StepRunInfo(RunInfo):
-    step: TestStep
+    step: Step
     feature_name: Optional[str] = None
     iteration_index: Optional[int] = 0
     scenario_name: Optional[str] = None

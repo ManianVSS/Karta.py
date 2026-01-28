@@ -4,7 +4,7 @@ from datetime import datetime
 
 from karta.core.interfaces.plugins import TestLifecycleHook, TestEventListener
 from karta.core.models.generic import Context
-from karta.core.models.test_catalog import TestFeature, TestScenario, TestStep
+from karta.core.models.test_catalog import Feature, Scenario, Step
 from karta.core.models.test_execution import Run, StepResult, ScenarioResult, FeatureResult, RunResult
 
 
@@ -59,7 +59,7 @@ class EventProcessor:
         for test_lifecycle_hooks in self.test_lifecycle_hooks:
             test_lifecycle_hooks.run_start(run_context)
 
-    def feature_start(self, run: Run, feature: TestFeature, feature_context: Context):
+    def feature_start(self, run: Run, feature: Feature, feature_context: Context):
         run_info = Context()
         run_info.time = datetime.now()
         run_info.run = run
@@ -78,8 +78,8 @@ class EventProcessor:
         for test_lifecycle_hooks in self.test_lifecycle_hooks:
             test_lifecycle_hooks.feature_start(feature_context)
 
-    def feature_iteration_start(self, run: Run, feature: TestFeature, iteration_index: int,
-                                scenarios: list[TestScenario], feature_context: Context):
+    def feature_iteration_start(self, run: Run, feature: Feature, iteration_index: int,
+                                scenarios: list[Scenario], feature_context: Context):
         run_info = Context()
         run_info.time = datetime.now()
         run_info.run = run
@@ -102,7 +102,7 @@ class EventProcessor:
         for test_lifecycle_hooks in self.test_lifecycle_hooks:
             test_lifecycle_hooks.feature_iteration_start(feature_context)
 
-    def scenario_start(self, run: Run, feature_name: str, iteration_index: int, scenario: TestScenario,
+    def scenario_start(self, run: Run, feature_name: str, iteration_index: int, scenario: Scenario,
                        scenario_context: Context):
         run_info = Context()
         run_info.time = datetime.now()
@@ -126,7 +126,7 @@ class EventProcessor:
         for test_lifecycle_hooks in self.test_lifecycle_hooks:
             test_lifecycle_hooks.scenario_start(scenario_context)
 
-    def step_start(self, run: Run, feature_name: str, iteration_index: int, scenario_name: str, step: TestStep,
+    def step_start(self, run: Run, feature_name: str, iteration_index: int, scenario_name: str, step: Step,
                    scenario_context: Context):
         run_info = Context()
         run_info.time = datetime.now()
@@ -143,7 +143,7 @@ class EventProcessor:
             'feature': feature_name,
             'iteration_index': iteration_index,
             'scenario': scenario_name,
-            'step': step.name,
+            'step': step.identifier,
         })
         for test_event_listener in self.test_event_listeners:
             self.event_listener_thread_pool_executor.submit(test_event_listener.step_start,
@@ -153,7 +153,7 @@ class EventProcessor:
             test_lifecycle_hooks.step_start(scenario_context)
 
     def step_complete(self, run: Run, feature_name: str, iteration_index: int, scenario_name: str,
-                      step: TestStep, result: StepResult, scenario_context: Context):
+                      step: Step, result: StepResult, scenario_context: Context):
         run_info = Context()
         run_info.time = datetime.now()
         run_info.run = run
@@ -170,7 +170,7 @@ class EventProcessor:
             'feature': feature_name,
             'iteration_index': iteration_index,
             'scenario': scenario_name,
-            'step': step.name,
+            'step': step.identifier,
             'result': result,
         })
         for test_event_listener in self.test_event_listeners:
@@ -180,7 +180,7 @@ class EventProcessor:
         for test_lifecycle_hooks in self.test_lifecycle_hooks:
             test_lifecycle_hooks.step_complete(scenario_context)
 
-    def scenario_complete(self, run: Run, feature_name: str, iteration_index: int, scenario: TestScenario,
+    def scenario_complete(self, run: Run, feature_name: str, iteration_index: int, scenario: Scenario,
                           result: ScenarioResult, scenario_context: Context):
         run_info = Context()
         run_info.time = datetime.now()
@@ -206,7 +206,7 @@ class EventProcessor:
         for test_lifecycle_hooks in self.test_lifecycle_hooks:
             test_lifecycle_hooks.scenario_complete(scenario_context)
 
-    def feature_iteration_complete(self, run: Run, feature: TestFeature, iteration_index: int,
+    def feature_iteration_complete(self, run: Run, feature: Feature, iteration_index: int,
                                    result: list[ScenarioResult], feature_context: Context):
         run_info = Context()
         run_info.time = datetime.now()
@@ -230,7 +230,7 @@ class EventProcessor:
         for test_lifecycle_hooks in self.test_lifecycle_hooks:
             test_lifecycle_hooks.feature_iteration_complete(feature_context)
 
-    def feature_complete(self, run: Run, feature: TestFeature, result: FeatureResult, feature_context: Context):
+    def feature_complete(self, run: Run, feature: Feature, result: FeatureResult, feature_context: Context):
         run_info = Context()
         run_info.time = datetime.now()
         run_info.run = run

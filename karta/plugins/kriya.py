@@ -10,7 +10,7 @@ import yaml
 
 from karta.core.interfaces.plugins import FeatureParser, StepRunner, TestLifecycleHook, DependencyInjector
 from karta.core.models.generic import Context
-from karta.core.models.test_catalog import TestFeature, TestStep
+from karta.core.models.test_catalog import Feature, Step
 from karta.core.utils import importutils
 from karta.core.utils.logger import logger
 from karta.parsers.kriya.parser import KriyaParser
@@ -262,17 +262,17 @@ class Kriya(FeatureParser, StepRunner, TestLifecycleHook):
             imported_module = importutils.import_module_from_file(module_name, py_file)
             self.dependency_injector.inject(imported_module)
 
-    def parse_feature(self, feature_source: str, yaml_parser: bool = False) -> TestFeature:
+    def parse_feature(self, feature_source: str, yaml_parser: bool = False) -> Feature:
         if yaml_parser:
             # If yaml_parser is True, parse the feature source as YAML
             feature_raw_object = yaml.safe_load(feature_source)
-            feature_object = TestFeature.model_validate(feature_raw_object)
+            feature_object = Feature.model_validate(feature_raw_object)
             return feature_object
         else:
             feature_object = self.parser.parse(feature_source)
             return feature_object
 
-    def parse_feature_file(self, feature_file: str) -> TestFeature:
+    def parse_feature_file(self, feature_file: str) -> Feature:
         if feature_file.endswith(".yaml") or feature_file.endswith(".yml"):
             with open(feature_file, "r") as stream:
                 parsed_feature = self.parse_feature(stream.read(), yaml_parser=True)
@@ -286,7 +286,7 @@ class Kriya(FeatureParser, StepRunner, TestLifecycleHook):
                 parsed_feature.set_source(feature_file)
                 return parsed_feature
 
-    def get_features(self, ) -> list[TestFeature]:
+    def get_features(self, ) -> list[Feature]:
         parsed_features = []
         folder_path = Path(self.feature_directory)
         for file in itertools.chain(folder_path.glob("**/*.yaml"), folder_path.glob("**/*.feature"),
@@ -301,8 +301,8 @@ class Kriya(FeatureParser, StepRunner, TestLifecycleHook):
     def is_step_available(self, name: str) -> bool:
         return name in self.step_definition_mapping.keys()
 
-    def run_step(self, test_step: TestStep, context: dict) -> Union[tuple[dict, bool, str], bool]:
-        step_to_call = test_step.name.strip()
+    def run_step(self, test_step: Step, context: dict) -> Union[tuple[dict, bool, str], bool]:
+        step_to_call = test_step.identifier.strip()
         if step_to_call in self.step_definition_mapping.keys():
             try:
                 return self.step_definition_mapping[step_to_call](context=context)
