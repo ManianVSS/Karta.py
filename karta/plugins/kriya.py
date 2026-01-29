@@ -4,7 +4,7 @@ import re
 import sys
 import traceback
 from pathlib import Path
-from typing import Union, Callable
+from typing import Union, Callable, Any, Optional
 
 import yaml
 
@@ -15,14 +15,16 @@ from karta.core.utils import importutils
 from karta.core.utils.logger import logger
 from karta.parsers.kriya.parser import KriyaParser
 from karta.plugins.dependency_injector import Inject
+from karta.plugins.step_identifier import StepIdentifier
 
 
 def step_def(step_identifier):
     def register_step_definition(func):
         step_identifier_str = str(step_identifier)
         if step_identifier_str not in Kriya.step_definition_mapping:
-            logger.debug("registering %s to %s", step_identifier_str, func.__name__)
-            Kriya.step_definition_mapping[step_identifier_str] = func
+            step_identifier_obj = StepIdentifier(step_identifier_str, func)
+            logger.debug("registered %s to %s", str(step_identifier_obj), func.__name__)
+            Kriya.step_definition_mapping[step_identifier_str] = step_identifier_obj
 
         return func
 
@@ -215,7 +217,8 @@ def check_and_run_hooks(context: Context, hook_mapping: dict[str, list[Callable]
 class Kriya(FeatureParser, StepRunner, TestLifecycleHook):
     dependency_injector: DependencyInjector = Inject()
 
-    step_definition_mapping: dict[str, Callable] = {}
+    step_definition_mapping: dict[str, StepIdentifier] = {}
+    # step_definition_backend_mapping: dict[StepIdentifier, Callable] = {}
 
     before_run_mapping: dict[str, list[Callable]] = {}
     before_feature_mapping: dict[str, list[Callable]] = {}
@@ -298,20 +301,40 @@ class Kriya(FeatureParser, StepRunner, TestLifecycleHook):
     def get_steps(self) -> list[str]:
         return [*self.step_definition_mapping.keys()]
 
+    # TODO: Make step registry hanlde step mapping and parsing
     def is_step_available(self, name: str) -> bool:
-        return name in self.step_definition_mapping.keys()
+        if name in self.step_definition_mapping.keys():
+            return True
+        matching_step_definition_function, parameters = self.get_matching_step_implementation(name)
+
+        return matching_step_definition_function is not None
+
+    def get_matching_step_implementation(self, step_text: str) -> tuple[Optional[
+        Callable[[dict, ...], Union[None, bool, dict, tuple[bool, dict]]]], list]:
+        # Iterate through step definition to match text
+        for step_definition_obj in self.step_definition_mapping.values():
+            match_result, match_parameters = step_definition_obj.match(step_text)
+            if match_result:
+                return step_definition_obj.backend_function, match_parameters
+        return None, []
 
     def run_step(self, test_step: Step, context: dict) -> Union[tuple[dict, bool, str], bool]:
         step_to_call = test_step.identifier.strip()
-        if step_to_call in self.step_definition_mapping.keys():
-            try:
-                return self.step_definition_mapping[step_to_call](context=context)
-                # return step_result, True, None
-            except Exception as e:
-                return {}, False, str(e) + "\n" + traceback.format_exc()
-        else:
-            message = "Step definition mapping for {} could not be found".format(step_to_call)
-            return {}, False, message
+        # if step_to_call in self.step_definition_mapping.keys():
+        try:
+            matching_step_definition_function, parameters = self.get_matching_step_implementation(step_to_call)
+
+            if not matching_step_definition_function:
+                message = "Step definition mapping for {} could not be found".format(step_to_call)
+                return {}, False, message
+            return matching_step_definition_function(context, *parameters)
+            # return step_result, True, None
+        except Exception as e:
+            return {}, False, str(e) + "\n" + traceback.format_exc()
+
+    # else:
+    #     message = "Step definition mapping for {} could not be found".format(step_to_call)
+    #     return {}, False, message
 
     def run_start(self, context: Context):
         run_name = context.run_info.run.name

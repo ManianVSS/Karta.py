@@ -7,7 +7,8 @@ logger = logging.getLogger('karta_logger')
 logger.setLevel(logging.DEBUG)
 
 # Create a formatter to define the log format
-formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+# formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+formatter = logging.Formatter('%(asctime)s,%(msecs)03d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s')
 
 os.makedirs("logs", exist_ok=True)
 # Create a file handler to write logs to a file
