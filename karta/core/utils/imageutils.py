@@ -17,7 +17,7 @@ from mss import tools
 from mss.base import MSSBase
 from mss.models import Monitor
 
-from karta.core.utils.waitutil import wait_until
+from karta.core.utils.waitutil import wait_until, ConditionCallSpec
 
 import queue
 import threading
@@ -67,7 +67,7 @@ def generate_screenshot_file_name(filename_prefix=None) -> str:
     return f"{filename_prefix}_{timestamp}.png"
 
 
-def reduce_colors(image: Image, color_reduction_factor: int = 16) -> Image:
+def reduce_colors(image: Image.Image, color_reduction_factor: int = 16) -> Image.Image:
     arr = np.array(image.convert('RGB'))
     arr = (arr // color_reduction_factor) * color_reduction_factor
     new_image = Image.fromarray(arr)
@@ -309,6 +309,21 @@ class ImageFrame:
         self.data = difference_image.tobytes()
         return self
 
+    def reduce_colors(self, reduction_factor: int = 16) -> 'ImageFrame':
+        pil_image = self.to_pil_image()
+        arr = np.array(pil_image.convert('RGB'))
+        arr = (arr // reduction_factor) * reduction_factor
+        new_image = Image.fromarray(arr)
+        self.data = new_image.tobytes()
+        return self
+
+    def filter_colors(self, filter_colors: list[tuple[int, int, int]], filter_out: bool = False) -> 'ImageFrame':
+        if filter_out:
+            predicate_function = lambda color: color in filter_colors
+        else:
+            predicate_function = lambda color: color not in filter_colors
+        return self.filter_image(predicate_function)
+
 
 class ScreenCapture:
 
@@ -416,7 +431,7 @@ class ScreenCapture:
                 if sleep_time > 0:
                     time.sleep(sleep_time)
 
-    def has_frame_changed(self):
+    def has_frame_changed(self)->tuple[bool,...]:
         if not self.capturing:
             raise RuntimeError("Screen capture is not running. Call start_capture() first.")
 
@@ -435,7 +450,7 @@ class ScreenCapture:
         self.start_capture()
 
         try:
-            wait_result, image_change_time = wait_until(self.has_frame_changed, timeout, check_interval)
+            wait_result, image_change_time = wait_until(ConditionCallSpec(self.has_frame_changed), timeout, check_interval)
             if not image_change_time:
                 image_change_time = time.time()
             return wait_result, image_change_time
