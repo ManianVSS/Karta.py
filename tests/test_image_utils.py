@@ -3,11 +3,11 @@ from time import time
 import numpy as np
 from PIL import Image
 
-from karta.core.utils.imageutils import ScreenCapture
+from karta.core.utils.imageutils import ImageUtility
 
 if __name__ == '__main__':
 
-    with ScreenCapture(frame_rate=10, monitor=2) as screen_capture:
+    with ImageUtility(frame_rate=10, monitor=2) as screen_capture:
         # Capture starting screenshot
         screen_capture.save_screenshot("initial_screenshot.png")
 

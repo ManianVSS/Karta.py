@@ -5,13 +5,13 @@ from typing import Callable, Union, Any, Optional
 
 
 class ConditionCallSpec:
-    def __init__(self, condition: Callable[..., Union[bool, tuple[bool, ...]]], *condition_args, **condition_kwargs):
+    def __init__(self, condition: Callable[..., Union[bool, tuple[bool, *tuple[Any,...]]]], *condition_args, **condition_kwargs):
         self.condition = condition
         self.condition_args = condition_args if condition_args is not None else ()
         self.condition_kwargs = condition_kwargs if condition_kwargs is not None else {}
 
     @staticmethod
-    def _separate_condition_result(condition_result: Any) -> tuple[bool, ...]:
+    def _separate_condition_result(condition_result: Any) -> tuple[bool, *tuple[Any,...]]:
         if isinstance(condition_result, bool):
             return (condition_result,)
         elif isinstance(condition_result, tuple):
@@ -23,14 +23,14 @@ class ConditionCallSpec:
             return False, condition_result
 
     # noinspection PyTypeChecker
-    def _call_with_exception_handling(self) -> tuple[bool, ...]:
+    def _call_with_exception_handling(self) -> tuple[bool, *tuple[Any,...]]:
         try:
             result = self.condition(*self.condition_args, **self.condition_kwargs)
             return self._separate_condition_result(result)
         except Exception as e:
             return False, e
 
-    def call(self, call_lock: Optional[RLock] = None) -> tuple[bool, ...]:
+    def call(self, call_lock: Optional[RLock] = None) -> tuple[bool, *tuple[Any,...]]:
         if call_lock:
             with call_lock:
                 return self._call_with_exception_handling()
@@ -102,3 +102,44 @@ def wait_until(
     elasped_time += time() - start_time
     result, *other_return_args = condition_call_spec.call(condition_call_sync_lock)
     return WaitResult(elasped_time, result, *other_return_args)
+
+
+class ConditionWaitSpec:
+    def __init__(self, condition_call_spec: ConditionCallSpec, timeout: float, check_interval: float, sleep_wake_event: Optional[Event] = None):
+        self.condition_call_spec = condition_call_spec
+        self.timeout = timeout
+        self.check_interval = check_interval
+        self.sleep_wake_event = sleep_wake_event
+
+    def wait_for(self, condition_call_sync_lock: Optional[RLock] = None) -> WaitResult:
+        return wait_until(
+            self.condition_call_spec,
+            self.timeout,
+            self.check_interval,
+            self.sleep_wake_event,
+            condition_call_sync_lock
+        )
+
+
+def wait_for_multiple_conditions(condition_wait_specs: list[ConditionWaitSpec], synchronized_condition_checks: bool = True) -> list[WaitResult]:
+    if not condition_wait_specs:
+        return []
+
+    condition_call_sync_lock = RLock() if synchronized_condition_checks else None
+
+    results_queue: Queue = Queue()
+
+    def _run(condition_wait_spec: ConditionWaitSpec, index: int):
+        results_queue.put((index, condition_wait_spec.wait_for(condition_call_sync_lock)))
+
+    for idx, spec in enumerate(condition_wait_specs):
+        thread = Thread(target=_run, args=(spec, idx), name=f'wait-condition-{idx}')
+        thread.start()
+
+    # noinspection PyTypeChecker
+    ordered_wait_results: list[WaitResult] = [None] * len(condition_wait_specs)
+    for _ in range(len(condition_wait_specs)):
+        idx, result = results_queue.get()
+        ordered_wait_results[idx] = result
+
+    return ordered_wait_results
